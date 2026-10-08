@@ -1,9 +1,5 @@
-// Tymczasowe dane. Zastąpi je plik JSON.
-const MODELS = [
-  { id: 1, name: "iris-classifier", description: "Klasyfikacja gatunków irysów", framework: "scikit-learn", task: "Klasyfikacja", version: "1.0.0", accuracy: 0.967, size_mb: 0.4, status: "published" },
-  { id: 2, name: "house-price-regressor", description: "Predykcja cen mieszkań", framework: "XGBoost", task: "Regresja", version: "2.1.0", accuracy: 0.882, size_mb: 12.3, status: "published" },
-  { id: 3, name: "mnist-cnn", description: "Rozpoznawanie cyfr pisanych ręcznie", framework: "TensorFlow", task: "Klasyfikacja obrazów", version: "1.3.0", accuracy: 0.992, size_mb: 8.7, status: "draft" },
-];
+import { useEffect, useState } from "react";
+import { getModels } from "../api/models";
 
 const STATUS_LABELS = {
   draft: "Szkic",
@@ -16,6 +12,21 @@ function formatAccuracy(value) {
 }
 
 export default function ModelsPage() {
+  const [models, setModels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    getModels()
+      .then(setModels)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <p className="muted">Ładowanie...</p>;
+  if (error) return <p className="error">{error}</p>;
+  if (models.length === 0) return <p className="muted">Brak modeli do wyświetlenia.</p>;
+
   return (
     <div className="table-wrapper">
       <table>
@@ -31,7 +42,7 @@ export default function ModelsPage() {
           </tr>
         </thead>
         <tbody>
-          {MODELS.map((m) => (
+          {models.map((m) => (
             <tr key={m.id}>
               <td>
                 <strong>{m.name}</strong>
