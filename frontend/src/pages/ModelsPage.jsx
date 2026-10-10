@@ -1,19 +1,31 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteModel, getModels } from "../api/models";
+import ConfirmDialog from "../components/ConfirmDialog";
+import ErrorMessage from "../components/ErrorMessage";
+import Spinner from "../components/Spinner";
 import StatusBadge from "../components/StatusBadge";
+import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
 import { formatAccuracy, formatSize } from "../utils/format";
 
 export default function ModelsPage() {
   const { data: models, loading, error, reload } = useFetch(getModels);
+  const toast = useToast();
+  const [toDelete, setToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  async function handleDelete(model) {
-    if (!window.confirm(`Usunąć model „${model.name}”?`)) return;
+  async function confirmDelete() {
+    setDeleting(true);
     try {
-      await deleteModel(model.id);
+      await deleteModel(toDelete.id);
+      toast.success(`Model „${toDelete.name}” został usunięty.`);
+      setToDelete(null);
       reload();
     } catch (err) {
-      window.alert(err.message);
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -26,9 +38,17 @@ export default function ModelsPage() {
         </Link>
       </div>
 
-      {loading && <p className="muted">Ładowanie...</p>}
-      {error && <p className="error">{error.message}</p>}
-      {models && models.length === 0 && <p className="muted">Brak modeli do wyświetlenia.</p>}
+      {loading && <Spinner label="Ładowanie modeli..." />}
+      {error && <ErrorMessage error={error} onRetry={reload} />}
+
+      {models && models.length === 0 && (
+        <div className="empty-state">
+          <p>Nie ma jeszcze żadnych modeli.</p>
+          <Link to="/models/new" className="btn btn-primary">
+            Dodaj pierwszy model
+          </Link>
+        </div>
+      )}
 
       {models && models.length > 0 && (
         <div className="table-wrapper">
@@ -64,7 +84,7 @@ export default function ModelsPage() {
                   </td>
                   <td className="actions">
                     <Link to={`/models/${m.id}/edit`}>Edytuj</Link>
-                    <button type="button" className="link-danger" onClick={() => handleDelete(m)}>
+                    <button type="button" className="link-danger" onClick={() => setToDelete(m)}>
                       Usuń
                     </button>
                   </td>
@@ -74,6 +94,16 @@ export default function ModelsPage() {
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(toDelete)}
+        title="Usunąć model?"
+        message={toDelete ? `Model „${toDelete.name}” zostanie trwale usunięty.` : ""}
+        confirmLabel="Usuń"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setToDelete(null)}
+      />
     </section>
   );
 }

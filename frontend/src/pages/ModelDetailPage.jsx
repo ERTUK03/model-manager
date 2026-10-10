@@ -1,21 +1,31 @@
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { deleteModel, getModel } from "../api/models";
+import ConfirmDialog from "../components/ConfirmDialog";
+import ErrorMessage from "../components/ErrorMessage";
+import Spinner from "../components/Spinner";
 import StatusBadge from "../components/StatusBadge";
+import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
 import { formatAccuracy, formatDate, formatSize } from "../utils/format";
 
 export default function ModelDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: model, loading, error } = useFetch(() => getModel(id), [id]);
+  const toast = useToast();
+  const { data: model, loading, error, reload } = useFetch(() => getModel(id), [id]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  async function handleDelete() {
-    if (!window.confirm(`Usunąć model „${model.name}”?`)) return;
+  async function confirmDelete() {
+    setDeleting(true);
     try {
       await deleteModel(id);
+      toast.success(`Model „${model.name}” został usunięty.`);
       navigate("/");
     } catch (err) {
-      window.alert(err.message);
+      toast.error(err.message);
+      setDeleting(false);
     }
   }
 
@@ -25,8 +35,8 @@ export default function ModelDetailPage() {
         <Link to="/">← Wróć do listy</Link>
       </p>
 
-      {loading && <p className="muted">Ładowanie...</p>}
-      {error && <p className="error">{error.message}</p>}
+      {loading && <Spinner label="Ładowanie modelu..." />}
+      {error && <ErrorMessage error={error} onRetry={error.status === 404 ? undefined : reload} />}
 
       {model && (
         <>
@@ -38,7 +48,7 @@ export default function ModelDetailPage() {
               <Link to={`/models/${id}/edit`} className="btn btn-secondary">
                 Edytuj
               </Link>
-              <button type="button" className="btn btn-danger" onClick={handleDelete}>
+              <button type="button" className="btn btn-danger" onClick={() => setConfirmOpen(true)}>
                 Usuń
               </button>
             </div>
@@ -61,6 +71,16 @@ export default function ModelDetailPage() {
             <dt>Ostatnia zmiana</dt>
             <dd>{formatDate(model.updated_at)}</dd>
           </dl>
+
+          <ConfirmDialog
+            open={confirmOpen}
+            title="Usunąć model?"
+            message={`Model „${model.name}” zostanie trwale usunięty.`}
+            confirmLabel="Usuń"
+            busy={deleting}
+            onConfirm={confirmDelete}
+            onCancel={() => setConfirmOpen(false)}
+          />
         </>
       )}
     </section>

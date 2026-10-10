@@ -5,6 +5,7 @@ import { toPayload } from "../utils/mappers";
 export default function ModelForm({ initialValues, onSubmit, submitLabel }) {
   const [values, setValues] = useState(initialValues);
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -14,10 +15,12 @@ export default function ModelForm({ initialValues, onSubmit, submitLabel }) {
   async function handleSubmit(event) {
     event.preventDefault();
     setError(null);
+    setSubmitting(true);
     try {
       await onSubmit(toPayload(values));
     } catch (err) {
       setError(err);
+      setSubmitting(false);
     }
   }
 
@@ -93,8 +96,8 @@ export default function ModelForm({ initialValues, onSubmit, submitLabel }) {
       </div>
 
       <div className="form-actions">
-        <button type="submit" className="btn btn-primary">
-          {submitLabel}
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? "Zapisywanie..." : submitLabel}
         </button>
       </div>
     </form>

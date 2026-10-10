@@ -1,6 +1,9 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { createModel, getModel, updateModel } from "../api/models";
+import ErrorMessage from "../components/ErrorMessage";
 import ModelForm from "../components/ModelForm";
+import Spinner from "../components/Spinner";
+import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
 import { EMPTY_VALUES, toFormValues } from "../utils/mappers";
 
@@ -9,13 +12,15 @@ export default function ModelFormPage() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
-  const { data: model, loading, error } = useFetch(
+  const toast = useToast();
+  const { data: model, loading, error, reload } = useFetch(
     () => (isEdit ? getModel(id) : Promise.resolve(null)),
     [id]
   );
 
   async function handleSubmit(payload) {
     const saved = isEdit ? await updateModel(id, payload) : await createModel(payload);
+    toast.success(isEdit ? "Zmiany zostały zapisane." : "Model został dodany.");
     navigate(`/models/${saved.id}`);
   }
 
@@ -26,8 +31,8 @@ export default function ModelFormPage() {
       </p>
       <h2>{isEdit ? "Edycja modelu" : "Nowy model"}</h2>
 
-      {isEdit && loading && <p className="muted">Ładowanie...</p>}
-      {isEdit && error && <p className="error">{error.message}</p>}
+      {isEdit && loading && <Spinner label="Ładowanie modelu..." />}
+      {isEdit && error && <ErrorMessage error={error} onRetry={error.status === 404 ? undefined : reload} />}
 
       {(!isEdit || model) && (
         <ModelForm
