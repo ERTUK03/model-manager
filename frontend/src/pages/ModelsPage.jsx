@@ -1,67 +1,59 @@
-import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getModels } from "../api/models";
-
-const STATUS_LABELS = {
-  draft: "Szkic",
-  published: "Opublikowany",
-  archived: "Zarchiwizowany",
-};
-
-function formatAccuracy(value) {
-  return typeof value === "number" ? `${(value * 100).toFixed(1)}%` : "—";
-}
+import StatusBadge from "../components/StatusBadge";
+import { useFetch } from "../hooks/useFetch";
+import { formatAccuracy, formatSize } from "../utils/format";
 
 export default function ModelsPage() {
-  const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    getModels()
-      .then(setModels)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <p className="muted">Ładowanie...</p>;
-  if (error) return <p className="error">{error}</p>;
-  if (models.length === 0) return <p className="muted">Brak modeli do wyświetlenia.</p>;
+  const { data: models, loading, error } = useFetch(getModels);
 
   return (
-    <div className="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Nazwa</th>
-            <th>Framework</th>
-            <th>Zadanie</th>
-            <th>Wersja</th>
-            <th>Dokładność</th>
-            <th>Rozmiar</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {models.map((m) => (
-            <tr key={m.id}>
-              <td>
-                <strong>{m.name}</strong>
-                <div className="muted small">{m.description}</div>
-              </td>
-              <td>{m.framework}</td>
-              <td>{m.task}</td>
-              <td>{m.version}</td>
-              <td>{formatAccuracy(m.accuracy)}</td>
-              <td>{m.size_mb} MB</td>
-              <td>
-                <span className={`badge badge-${m.status}`}>
-                  {STATUS_LABELS[m.status] ?? m.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <section>
+      <div className="page-header">
+        <h2>Modele</h2>
+      </div>
+
+      {loading && <p className="muted">Ładowanie...</p>}
+      {error && <p className="error">{error.message}</p>}
+      {models && models.length === 0 && <p className="muted">Brak modeli do wyświetlenia.</p>}
+
+      {models && models.length > 0 && (
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nazwa</th>
+                <th>Framework</th>
+                <th>Zadanie</th>
+                <th>Wersja</th>
+                <th>Dokładność</th>
+                <th>Rozmiar</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {models.map((m) => (
+                <tr key={m.id}>
+                  <td>
+                    <Link to={`/models/${m.id}`}>
+                      <strong>{m.name}</strong>
+                    </Link>
+                    <div className="muted small">{m.description}</div>
+                  </td>
+                  <td>{m.framework}</td>
+                  <td>{m.task}</td>
+                  <td>{m.version}</td>
+                  <td>{formatAccuracy(m.accuracy)}</td>
+                  <td>{formatSize(m.size_mb)}</td>
+                  <td>
+                    <StatusBadge status={m.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
