@@ -1,12 +1,23 @@
-import { Link, useParams } from "react-router-dom";
-import { getModel } from "../api/models";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { deleteModel, getModel } from "../api/models";
 import StatusBadge from "../components/StatusBadge";
 import { useFetch } from "../hooks/useFetch";
 import { formatAccuracy, formatDate, formatSize } from "../utils/format";
 
 export default function ModelDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: model, loading, error } = useFetch(() => getModel(id), [id]);
+
+  async function handleDelete() {
+    if (!window.confirm(`Usunąć model „${model.name}”?`)) return;
+    try {
+      await deleteModel(id);
+      navigate("/");
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
 
   return (
     <section>
@@ -20,8 +31,17 @@ export default function ModelDetailPage() {
       {model && (
         <>
           <div className="page-header">
-            <h2>{model.name}</h2>
-            <StatusBadge status={model.status} />
+            <h2>
+              {model.name} <StatusBadge status={model.status} />
+            </h2>
+            <div className="button-group">
+              <Link to={`/models/${id}/edit`} className="btn btn-secondary">
+                Edytuj
+              </Link>
+              <button type="button" className="btn btn-danger" onClick={handleDelete}>
+                Usuń
+              </button>
+            </div>
           </div>
           {model.description && <p>{model.description}</p>}
 

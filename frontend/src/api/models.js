@@ -23,3 +23,24 @@ export async function getModel(id) {
   }
   return request(`/models/${id}`);
 }
+
+async function assertWritable() {
+  if (USE_MOCK) {
+    throw new ApiError("Tryb mock: zapis danych jest wyłączony. Ustaw VITE_USE_MOCK=false.");
+  }
+}
+
+export async function createModel(payload) {
+  await assertWritable();
+  return request("/models", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function updateModel(id, payload) {
+  await assertWritable();
+  return request(`/models/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+}
+
+export async function deleteModel(id) {
+  await assertWritable();
+  return request(`/models/${id}`, { method: "DELETE" });
+}

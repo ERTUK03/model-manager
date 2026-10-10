@@ -53,3 +53,23 @@ a:hover { text-decoration: underline; }
 .details { display: grid; grid-template-columns: max-content 1fr; gap: 8px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
 .details dt { color: var(--muted); }
 .details dd { margin: 0; }
+
+/* --- przyciski i formularze --- */
+.btn { display: inline-block; padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; font: inherit; cursor: pointer; text-decoration: none; }
+.btn:hover { text-decoration: none; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-danger { background: transparent; color: #d92d20; border-color: #d92d20; }
+.button-group { display: flex; gap: 8px; }
+.actions { white-space: nowrap; }
+.actions > * + * { margin-left: 12px; }
+.link-danger { background: none; border: none; padding: 0; font: inherit; color: #d92d20; cursor: pointer; }
+.link-danger:hover { text-decoration: underline; }
+.form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; max-width: 720px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; flex: 1; }
+.field label { font-size: 0.9rem; color: var(--muted); }
+.field input, .field select, .field textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.field-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.form-actions { margin-top: 8px; }
+.error-box { border: 1px solid #d92d20; color: #d92d20; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+.error-box ul { margin: 6px 0 0; padding-left: 18px; }

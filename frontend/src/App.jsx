@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from "react-router-dom";
 import ModelDetailPage from "./pages/ModelDetailPage";
+import ModelFormPage from "./pages/ModelFormPage";
 import ModelsPage from "./pages/ModelsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -15,7 +16,9 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<ModelsPage />} />
+          <Route path="/models/new" element={<ModelFormPage />} />
           <Route path="/models/:id" element={<ModelDetailPage />} />
+          <Route path="/models/:id/edit" element={<ModelFormPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

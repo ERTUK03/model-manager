@@ -1,16 +1,29 @@
 import { Link } from "react-router-dom";
-import { getModels } from "../api/models";
+import { deleteModel, getModels } from "../api/models";
 import StatusBadge from "../components/StatusBadge";
 import { useFetch } from "../hooks/useFetch";
 import { formatAccuracy, formatSize } from "../utils/format";
 
 export default function ModelsPage() {
-  const { data: models, loading, error } = useFetch(getModels);
+  const { data: models, loading, error, reload } = useFetch(getModels);
+
+  async function handleDelete(model) {
+    if (!window.confirm(`Usunąć model „${model.name}”?`)) return;
+    try {
+      await deleteModel(model.id);
+      reload();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
 
   return (
     <section>
       <div className="page-header">
         <h2>Modele</h2>
+        <Link to="/models/new" className="btn btn-primary">
+          Dodaj model
+        </Link>
       </div>
 
       {loading && <p className="muted">Ładowanie...</p>}
@@ -29,6 +42,7 @@ export default function ModelsPage() {
                 <th>Dokładność</th>
                 <th>Rozmiar</th>
                 <th>Status</th>
+                <th>Akcje</th>
               </tr>
             </thead>
             <tbody>
@@ -47,6 +61,12 @@ export default function ModelsPage() {
                   <td>{formatSize(m.size_mb)}</td>
                   <td>
                     <StatusBadge status={m.status} />
+                  </td>
+                  <td className="actions">
+                    <Link to={`/models/${m.id}/edit`}>Edytuj</Link>
+                    <button type="button" className="link-danger" onClick={() => handleDelete(m)}>
+                      Usuń
+                    </button>
                   </td>
                 </tr>
               ))}
