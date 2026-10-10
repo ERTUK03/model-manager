@@ -91,3 +91,7 @@ a:hover { text-decoration: underline; }
 .dialog h3 { margin-top: 0; }
 .dialog-actions { justify-content: flex-end; }
 .btn-danger-solid { background: #d92d20; color: #fff; }
+
+/* --- walidacja formularzy --- */
+.field-error { color: #d92d20; font-size: 0.85rem; }
+.field [aria-invalid="true"] { border-color: #d92d20; }
