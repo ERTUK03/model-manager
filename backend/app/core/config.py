@@ -13,8 +13,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     # Lista adresów oddzielonych przecinkami. Puste = CORS wyłączony (ruch idzie przez proxy nginx)
     cors_origins: str = ""
-    # SecretStr: wartość nie pojawia się w logach ani w repr(). Wymagana od kroku z bazą danych
-    database_url: SecretStr | None = None
+    # SecretStr: wartość nie pojawia się w logach ani w repr().
+    # Brak wartości domyślnej: aplikacja nie uruchomi się bez ustawionego DATABASE_URL
+    database_url: SecretStr
 
     @property
     def cors_origins_list(self) -> list[str]:
