@@ -1,10 +1,23 @@
 name: CI
 
+# Uruchamiany po każdym pushu na main oraz dla każdego Pull Requesta
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+
+# Minimalne uprawnienia tokenu: tylko odczyt kodu
+permissions:
+  contents: read
+
+# Nowe uruchomienie na tej samej gałęzi anuluje poprzednie
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GITLEAKS_VERSION: "8.30.1"
+  GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
 
 jobs:
   backend:
@@ -14,8 +27,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -33,10 +46,10 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Instalacja zależności
@@ -45,3 +58,46 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  docker-frontend:
+    name: Obraz Docker front-endu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Budowanie obrazu (bez publikacji)
+        run: docker build --tag model-manager-frontend:ci frontend
+
+  secrets:
+    name: Skanowanie sekretów
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # pełna historia, żeby sprawdzić także wcześniejsze commity
+      - name: Instalacja Gitleaks (z weryfikacją sumy kontrolnej)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+      - name: Skanowanie historii repozytorium
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose --no-banner .'
+
+  dependencies:
+    name: Skanowanie zależności
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Audyt zależności Pythona (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements-dev.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Audyt zależności Node.js (npm audit, próg high)
+        working-directory: frontend
+        run: npm audit --audit-level=high
