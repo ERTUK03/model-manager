@@ -1,0 +1,10 @@
+title = "Model Manager: konfiguracja Gitleaks"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Wzory plików konfiguracyjnych zawierają tylko puste lub przykładowe wartości"
+paths = [
+  '''(^|/)\.env\.example$''',
+]
