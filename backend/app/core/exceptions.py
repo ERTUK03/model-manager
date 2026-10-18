@@ -10,3 +10,7 @@ class NotFoundError(AppError):
 
 class ConflictError(AppError):
     """Konflikt z aktualnym stanem danych (np. zajęty adres e-mail)."""
+
+
+class UnauthorizedError(AppError):
+    """Brak lub nieprawidłowe uwierzytelnienie."""

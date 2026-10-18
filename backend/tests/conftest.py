@@ -3,6 +3,8 @@ import os
 # Testy ZAWSZE używają osobnej, lokalnej bazy SQLite. Ustawienie przed importem aplikacji
 # chroni prawdziwą bazę (z pliku .env) przed przypadkowym wyczyszczeniem.
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+# Wartość wyłącznie testowa, nieużywana nigdzie poza testami
+os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-use"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
