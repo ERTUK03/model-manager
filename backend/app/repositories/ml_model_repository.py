@@ -11,7 +11,8 @@ def escape_like(value: str) -> str:
 
 
 class SqlAlchemyMLModelRepository:
-    """Jedyne miejsce, które wykonuje zapytania do bazy danych."""
+    """Jedyne miejsce, które wykonuje zapytania do bazy danych.
+    Zapis (add, update, delete) nie wykonuje commitu: robi to serwis, razem z wpisem w historii."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -52,7 +53,7 @@ class SqlAlchemyMLModelRepository:
     def add(self, data: dict) -> MLModel:
         model = MLModel(**data)
         self.db.add(model)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(model)
         return model
 
@@ -62,7 +63,7 @@ class SqlAlchemyMLModelRepository:
             return None
         for key, value in data.items():
             setattr(model, key, value)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(model)
         return model
 
@@ -71,5 +72,8 @@ class SqlAlchemyMLModelRepository:
         if model is None:
             return False
         self.db.delete(model)
-        self.db.commit()
+        self.db.flush()
         return True
+
+    def commit(self) -> None:
+        self.db.commit()

@@ -7,9 +7,11 @@ from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.roles import ROLE_ADMIN
 from app.core.security import decode_access_token
 from app.models.user import User
+from app.repositories.history_repository import HistoryRepository
 from app.repositories.ml_model_repository import SqlAlchemyMLModelRepository
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService
+from app.services.history_service import HistoryService
 from app.services.ml_model_service import MLModelService
 
 # auto_error=False: brak nagłówka obsługujemy sami, żeby zwracać 401 w jednolitym formacie
@@ -17,7 +19,11 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_model_service(db: Session = Depends(get_db)) -> MLModelService:
-    return MLModelService(SqlAlchemyMLModelRepository(db))
+    return MLModelService(SqlAlchemyMLModelRepository(db), HistoryRepository(db))
+
+
+def get_history_service(db: Session = Depends(get_db)) -> HistoryService:
+    return HistoryService(HistoryRepository(db), SqlAlchemyMLModelRepository(db))
 
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
