@@ -106,3 +106,13 @@ a:hover { text-decoration: underline; }
 
 /* --- role --- */
 .role-badge { padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--border); color: var(--muted); }
+
+/* --- wyszukiwanie, filtry, paginacja --- */
+.filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.filters input[type="search"] { flex: 1; min-width: 220px; }
+.filters input, .filters select { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.table-wrapper.is-loading { opacity: 0.6; transition: opacity 0.15s; }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.pagination-controls { display: flex; align-items: center; gap: 12px; }
+.page-size { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.9rem; }
+.page-size select { font: inherit; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
