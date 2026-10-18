@@ -14,3 +14,7 @@ class ConflictError(AppError):
 
 class UnauthorizedError(AppError):
     """Brak lub nieprawidłowe uwierzytelnienie."""
+
+
+class ForbiddenError(AppError):
+    """Użytkownik jest zalogowany, ale nie ma uprawnień do operacji."""

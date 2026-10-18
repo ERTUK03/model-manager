@@ -3,7 +3,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.exceptions import UnauthorizedError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.roles import ROLE_ADMIN
 from app.core.security import decode_access_token
 from app.models.user import User
 from app.repositories.ml_model_repository import SqlAlchemyMLModelRepository
@@ -32,4 +33,10 @@ def get_current_user(
     user = UserRepository(db).get_by_id(decode_access_token(credentials.credentials))
     if user is None:
         raise UnauthorizedError("Token jest nieprawidłowy lub wygasł")
+    return user
+
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    if user.role != ROLE_ADMIN:
+        raise ForbiddenError("Brak uprawnień do wykonania tej operacji")
     return user
