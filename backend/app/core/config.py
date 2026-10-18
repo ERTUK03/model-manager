@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # Brak wartości domyślnej: aplikacja nie uruchomi się bez ustawionego DATABASE_URL
     database_url: SecretStr
 
+    # Dane pierwszego administratora, używane wyłącznie przez scripts/create_admin.py
+    admin_email: str | None = None
+    admin_password: SecretStr | None = None
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
