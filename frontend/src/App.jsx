@@ -7,6 +7,7 @@ import ModelDetailPage from "./pages/ModelDetailPage";
 import ModelFormPage from "./pages/ModelFormPage";
 import ModelsPage from "./pages/ModelsPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import RegisterPage from "./pages/RegisterPage";
 
 export default function App() {
   const { user, logout } = useAuth();
@@ -28,18 +29,24 @@ export default function App() {
           </Link>
           <p className="muted">Katalog zapisanych modeli uczenia maszynowego</p>
         </div>
-        {user && (
+        {user ? (
           <div className="userbox">
             <span>{user.email}</span>
             <button type="button" className="btn btn-secondary" onClick={handleLogout}>
               Wyloguj
             </button>
           </div>
+        ) : (
+          <nav className="userbox">
+            <Link to="/login">Zaloguj się</Link>
+            <Link to="/register">Utwórz konto</Link>
+          </nav>
         )}
       </header>
       <main>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<ModelsPage />} />
             <Route path="/models/new" element={<ModelFormPage />} />

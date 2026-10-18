@@ -78,6 +78,9 @@ export default function LoginPage() {
             {isSubmitting ? "Logowanie..." : "Zaloguj się"}
           </button>
         </div>
+        <p className="auth-footer">
+          Nie masz konta? <Link to="/register">Utwórz konto</Link>
+        </p>
       </form>
     </section>
   );
