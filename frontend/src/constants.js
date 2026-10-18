@@ -12,3 +12,20 @@ export const ROLE_LABELS = {
   admin: "Administrator",
   user: "Użytkownik",
 };
+
+export const FIELD_LABELS = {
+  name: "Nazwa",
+  description: "Opis",
+  framework: "Framework",
+  task: "Zadanie",
+  version: "Wersja",
+  accuracy: "Dokładność",
+  size_mb: "Rozmiar",
+  status: "Status",
+};
+
+export const ACTION_LABELS = {
+  created: "Utworzono",
+  updated: "Zmieniono",
+  deleted: "Usunięto",
+};
