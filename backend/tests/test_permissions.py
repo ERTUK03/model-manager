@@ -48,7 +48,7 @@ def test_user_cannot_modify_models(client, user_client):
 
     # model nie został zmieniony ani usunięty
     assert client.get(f"/api/models/{model_id}").status_code == 200
-    assert len(client.get("/api/models").json()) == 1
+    assert client.get("/api/models").json()["total"] == 1
 
 
 def test_permission_is_checked_before_validation(user_client):

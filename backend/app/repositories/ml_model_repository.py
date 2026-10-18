@@ -1,17 +1,51 @@
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.ml_model import MLModel
+from app.schemas.ml_model import MLModelListQuery
+
+
+def escape_like(value: str) -> str:
+    """Znaki % i _ wpisane przez użytkownika mają być traktowane dosłownie."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class SqlAlchemyMLModelRepository:
-    """Jedyne miejsce, które wykonuje zapytania do bazy danych."""
+    """Jedyne miejsce, które wykonuje zapytania do bazy danych.
+    Zapis (add, update, delete) nie wykonuje commitu: robi to serwis, razem z wpisem w historii."""
 
     def __init__(self, db: Session):
         self.db = db
 
-    def list(self) -> list[MLModel]:
-        return list(self.db.scalars(select(MLModel).order_by(MLModel.id)))
+    def list(self, params: MLModelListQuery) -> tuple[list[MLModel], int]:
+        conditions = []
+        if params.search:
+            pattern = f"%{escape_like(params.search)}%"
+            conditions.append(
+                or_(
+                    MLModel.name.ilike(pattern, escape="\\"),
+                    MLModel.description.ilike(pattern, escape="\\"),
+                )
+            )
+        if params.framework:
+            conditions.append(MLModel.framework == params.framework)
+        if params.status:
+            conditions.append(MLModel.status == params.status)
+
+        total = self.db.scalar(select(func.count()).select_from(MLModel).where(*conditions)) or 0
+
+        column = getattr(MLModel, params.sort)
+        ascending = params.order == "asc"
+        primary = column.asc() if ascending else column.desc()
+        # Puste wartości (np. brak dokładności) zawsze na końcu; id rozstrzyga remisy
+        statement = (
+            select(MLModel)
+            .where(*conditions)
+            .order_by(primary.nulls_last(), MLModel.id.asc() if ascending else MLModel.id.desc())
+            .offset((params.page - 1) * params.page_size)
+            .limit(params.page_size)
+        )
+        return list(self.db.scalars(statement)), total
 
     def get(self, model_id: int) -> MLModel | None:
         return self.db.get(MLModel, model_id)
@@ -19,7 +53,7 @@ class SqlAlchemyMLModelRepository:
     def add(self, data: dict) -> MLModel:
         model = MLModel(**data)
         self.db.add(model)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(model)
         return model
 
@@ -29,7 +63,7 @@ class SqlAlchemyMLModelRepository:
             return None
         for key, value in data.items():
             setattr(model, key, value)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(model)
         return model
 
@@ -38,5 +72,8 @@ class SqlAlchemyMLModelRepository:
         if model is None:
             return False
         self.db.delete(model)
-        self.db.commit()
+        self.db.flush()
         return True
+
+    def commit(self) -> None:
+        self.db.commit()

@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { ROLE_LABELS } from "./constants";
 import { useAuth } from "./context/AuthContext";
 import { useToast } from "./context/ToastContext";
+import HistoryPage from "./pages/HistoryPage";
 import LoginPage from "./pages/LoginPage";
 import ModelDetailPage from "./pages/ModelDetailPage";
 import ModelFormPage from "./pages/ModelFormPage";
@@ -12,7 +13,7 @@ import NotFoundPage from "./pages/NotFoundPage";
 import RegisterPage from "./pages/RegisterPage";
 
 export default function App() {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -33,6 +34,7 @@ export default function App() {
         </div>
         {user ? (
           <div className="userbox">
+            {isAdmin && <Link to="/history">Historia zmian</Link>}
             <span>{user.email}</span>
             <span className="role-badge">{ROLE_LABELS[user.role] ?? user.role}</span>
             <button type="button" className="btn btn-secondary" onClick={handleLogout}>
@@ -56,6 +58,7 @@ export default function App() {
             <Route element={<AdminRoute />}>
               <Route path="/models/new" element={<ModelFormPage />} />
               <Route path="/models/:id/edit" element={<ModelFormPage />} />
+              <Route path="/history" element={<HistoryPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />

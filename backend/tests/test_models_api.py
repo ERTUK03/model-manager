@@ -34,7 +34,8 @@ def test_list_returns_200(client):
     create(client, name="second-model")
     response = client.get("/api/models")
     assert response.status_code == 200
-    assert len(response.json()) == 2
+    assert response.json()["total"] == 2
+    assert len(response.json()["items"]) == 2
 
 
 def test_get_existing_returns_200(client):
@@ -100,7 +101,7 @@ def test_invalid_id_returns_400(client):
 
 def test_unexpected_error_returns_500(client):
     class BrokenService:
-        def list_models(self):
+        def list_models(self, *args, **kwargs):
             raise RuntimeError("boom")
 
     app.dependency_overrides[get_model_service] = lambda: BrokenService()

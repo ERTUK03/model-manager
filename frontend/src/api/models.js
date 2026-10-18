@@ -1,10 +1,8 @@
+import { toApiQuery } from "../utils/listParams";
 import { request } from "./client";
 
-export async function getModels() {
-  const data = await request("/models");
-  // Back-end może zwracać tablicę lub obiekt z paginacją { items: [...] }
-  return Array.isArray(data) ? data : data.items;
-}
+// Zwraca stronę wyników: { items, total, page, page_size, pages }
+export const getModels = (params) => request(`/models?${toApiQuery(params)}`);
 
 export const getModel = (id) => request(`/models/${id}`);
 
