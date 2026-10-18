@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,21 @@ class Settings(BaseSettings):
     # SecretStr: wartość nie pojawia się w logach ani w repr().
     # Brak wartości domyślnej: aplikacja nie uruchomi się bez ustawionego DATABASE_URL
     database_url: SecretStr
+
+    # Sekret do podpisywania tokenów JWT. Brak wartości domyślnej, minimum 32 znaki
+    jwt_secret: SecretStr
+    jwt_expire_minutes: int = 60
+
+    # Dane pierwszego administratora, używane wyłącznie przez scripts/create_admin.py
+    admin_email: str | None = None
+    admin_password: SecretStr | None = None
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def jwt_secret_long_enough(cls, value: SecretStr) -> SecretStr:
+        if len(value.get_secret_value()) < 32:
+            raise ValueError("JWT_SECRET musi mieć co najmniej 32 znaki")
+        return value
 
     @property
     def cors_origins_list(self) -> list[str]:

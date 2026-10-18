@@ -5,6 +5,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ErrorMessage from "../components/ErrorMessage";
 import Spinner from "../components/Spinner";
 import StatusBadge from "../components/StatusBadge";
+import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
 import { formatAccuracy, formatDate, formatSize } from "../utils/format";
@@ -13,6 +14,7 @@ export default function ModelDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const { data: model, loading, error, reload } = useFetch(() => getModel(id), [id]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -44,14 +46,16 @@ export default function ModelDetailPage() {
             <h2>
               {model.name} <StatusBadge status={model.status} />
             </h2>
-            <div className="button-group">
-              <Link to={`/models/${id}/edit`} className="btn btn-secondary">
-                Edytuj
-              </Link>
-              <button type="button" className="btn btn-danger" onClick={() => setConfirmOpen(true)}>
-                Usuń
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="button-group">
+                <Link to={`/models/${id}/edit`} className="btn btn-secondary">
+                  Edytuj
+                </Link>
+                <button type="button" className="btn btn-danger" onClick={() => setConfirmOpen(true)}>
+                  Usuń
+                </button>
+              </div>
+            )}
           </div>
           {model.description && <p>{model.description}</p>}
 

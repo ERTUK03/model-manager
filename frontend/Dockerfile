@@ -1,5 +1,5 @@
 # --- Etap 1: budowanie aplikacji ---
-FROM node:25-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -7,9 +7,7 @@ COPY . .
 
 # Zmienne Vite są wbudowywane w kod podczas budowania
 ARG VITE_API_URL=/api
-ARG VITE_USE_MOCK=false
 ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_USE_MOCK=$VITE_USE_MOCK
 RUN npm run build
 
 # --- Etap 2: serwowanie przez nginx ---

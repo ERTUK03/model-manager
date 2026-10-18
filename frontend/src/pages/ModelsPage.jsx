@@ -5,6 +5,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ErrorMessage from "../components/ErrorMessage";
 import Spinner from "../components/Spinner";
 import StatusBadge from "../components/StatusBadge";
+import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
 import { formatAccuracy, formatSize } from "../utils/format";
@@ -12,6 +13,7 @@ import { formatAccuracy, formatSize } from "../utils/format";
 export default function ModelsPage() {
   const { data: models, loading, error, reload } = useFetch(getModels);
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -33,9 +35,11 @@ export default function ModelsPage() {
     <section>
       <div className="page-header">
         <h2>Modele</h2>
-        <Link to="/models/new" className="btn btn-primary">
-          Dodaj model
-        </Link>
+        {isAdmin && (
+          <Link to="/models/new" className="btn btn-primary">
+            Dodaj model
+          </Link>
+        )}
       </div>
 
       {loading && <Spinner label="Ładowanie modeli..." />}
@@ -44,9 +48,11 @@ export default function ModelsPage() {
       {models && models.length === 0 && (
         <div className="empty-state">
           <p>Nie ma jeszcze żadnych modeli.</p>
-          <Link to="/models/new" className="btn btn-primary">
-            Dodaj pierwszy model
-          </Link>
+          {isAdmin && (
+            <Link to="/models/new" className="btn btn-primary">
+              Dodaj pierwszy model
+            </Link>
+          )}
         </div>
       )}
 
@@ -62,7 +68,7 @@ export default function ModelsPage() {
                 <th>Dokładność</th>
                 <th>Rozmiar</th>
                 <th>Status</th>
-                <th>Akcje</th>
+                {isAdmin && <th>Akcje</th>}
               </tr>
             </thead>
             <tbody>
@@ -82,12 +88,14 @@ export default function ModelsPage() {
                   <td>
                     <StatusBadge status={m.status} />
                   </td>
-                  <td className="actions">
-                    <Link to={`/models/${m.id}/edit`}>Edytuj</Link>
-                    <button type="button" className="link-danger" onClick={() => setToDelete(m)}>
-                      Usuń
-                    </button>
-                  </td>
+                  {isAdmin && (
+                    <td className="actions">
+                      <Link to={`/models/${m.id}/edit`}>Edytuj</Link>
+                      <button type="button" className="link-danger" onClick={() => setToDelete(m)}>
+                        Usuń
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

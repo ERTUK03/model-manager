@@ -95,3 +95,14 @@ a:hover { text-decoration: underline; }
 /* --- walidacja formularzy --- */
 .field-error { color: #d92d20; font-size: 0.85rem; }
 .field [aria-invalid="true"] { border-color: #d92d20; }
+
+/* --- logowanie i pasek użytkownika --- */
+.topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.topbar h1 { margin: 0 0 4px; }
+.userbox { display: flex; align-items: center; gap: 12px; }
+.auth-card { max-width: 420px; margin: 32px auto; }
+.auth-card .form { max-width: none; }
+.auth-footer { margin-top: 14px; font-size: 0.9rem; }
+
+/* --- role --- */
+.role-badge { padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--border); color: var(--muted); }

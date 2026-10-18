@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +14,29 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def not_found_handler(request: Request, exc: NotFoundError):
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
+    @app.exception_handler(ConflictError)
+    async def conflict_handler(request: Request, exc: ConflictError):
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+    @app.exception_handler(ForbiddenError)
+    async def forbidden_handler(request: Request, exc: ForbiddenError):
+        return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+    @app.exception_handler(UnauthorizedError)
+    async def unauthorized_handler(request: Request, exc: UnauthorizedError):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": str(exc)},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     @app.exception_handler(RequestValidationError)
     async def validation_handler(request: Request, exc: RequestValidationError):
         errors = [
             {
                 "field": ".".join(str(part) for part in err["loc"]),
-                "message": err["msg"],
+                # Pydantic dodaje prefiks "Value error, " do własnych komunikatów
+                "message": err["msg"].removeprefix("Value error, "),
             }
             for err in exc.errors()
         ]

@@ -7,3 +7,8 @@ export const STATUS_LABELS = {
 };
 
 export const STATUSES = Object.keys(STATUS_LABELS);
+
+export const ROLE_LABELS = {
+  admin: "Administrator",
+  user: "Użytkownik",
+};
