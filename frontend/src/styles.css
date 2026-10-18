@@ -103,3 +103,6 @@ a:hover { text-decoration: underline; }
 .auth-card { max-width: 420px; margin: 32px auto; }
 .auth-card .form { max-width: none; }
 .auth-footer { margin-top: 14px; font-size: 0.9rem; }
+
+/* --- role --- */
+.role-badge { padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--border); color: var(--muted); }

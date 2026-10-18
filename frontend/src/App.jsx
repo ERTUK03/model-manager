@@ -1,5 +1,7 @@
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
+import AdminRoute from "./components/AdminRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ROLE_LABELS } from "./constants";
 import { useAuth } from "./context/AuthContext";
 import { useToast } from "./context/ToastContext";
 import LoginPage from "./pages/LoginPage";
@@ -32,6 +34,7 @@ export default function App() {
         {user ? (
           <div className="userbox">
             <span>{user.email}</span>
+            <span className="role-badge">{ROLE_LABELS[user.role] ?? user.role}</span>
             <button type="button" className="btn btn-secondary" onClick={handleLogout}>
               Wyloguj
             </button>
@@ -49,9 +52,11 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<ModelsPage />} />
-            <Route path="/models/new" element={<ModelFormPage />} />
             <Route path="/models/:id" element={<ModelDetailPage />} />
-            <Route path="/models/:id/edit" element={<ModelFormPage />} />
+            <Route element={<AdminRoute />}>
+              <Route path="/models/new" element={<ModelFormPage />} />
+              <Route path="/models/:id/edit" element={<ModelFormPage />} />
+            </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
