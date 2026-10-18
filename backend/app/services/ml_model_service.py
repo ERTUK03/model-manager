@@ -1,5 +1,7 @@
+from math import ceil
+
 from app.core.exceptions import NotFoundError
-from app.schemas.ml_model import MLModelCreate, MLModelUpdate
+from app.schemas.ml_model import MLModelCreate, MLModelListQuery, MLModelUpdate
 
 
 class MLModelService:
@@ -8,8 +10,15 @@ class MLModelService:
     def __init__(self, repository):
         self.repository = repository
 
-    def list_models(self):
-        return self.repository.list()
+    def list_models(self, params: MLModelListQuery) -> dict:
+        items, total = self.repository.list(params)
+        return {
+            "items": items,
+            "total": total,
+            "page": params.page,
+            "page_size": params.page_size,
+            "pages": ceil(total / params.page_size),
+        }
 
     def get_model(self, model_id: int):
         model = self.repository.get(model_id)

@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Path, Response, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 
 from app.api.deps import get_current_user, get_model_service, require_admin
-from app.schemas.ml_model import MLModelCreate, MLModelRead, MLModelUpdate
+from app.schemas.ml_model import MLModelCreate, MLModelListQuery, MLModelPage, MLModelRead, MLModelUpdate
 from app.services.ml_model_service import MLModelService
 
 # Odczyt: każdy zalogowany użytkownik. Zapis (POST, PUT, DELETE): tylko administrator
@@ -10,9 +12,12 @@ router = APIRouter(prefix="/models", tags=["models"], dependencies=[Depends(get_
 ModelId = Path(ge=1, description="Identyfikator modelu")
 
 
-@router.get("", response_model=list[MLModelRead])
-def list_models(service: MLModelService = Depends(get_model_service)):
-    return service.list_models()
+@router.get("", response_model=MLModelPage)
+def list_models(
+    params: Annotated[MLModelListQuery, Query()],
+    service: MLModelService = Depends(get_model_service),
+):
+    return service.list_models(params)
 
 
 @router.get("/{model_id}", response_model=MLModelRead)

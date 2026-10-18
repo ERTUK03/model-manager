@@ -45,3 +45,25 @@ class MLModelRead(MLModelBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+
+class MLModelListQuery(BaseModel):
+    """Parametry listy modeli: wyszukiwanie, filtry, sortowanie i paginacja."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, use_enum_values=True)
+
+    search: str | None = Field(default=None, max_length=100, description="Fragment nazwy lub opisu")
+    framework: Framework | None = None
+    status: Literal["draft", "published", "archived"] | None = None
+    sort: Literal["created_at", "updated_at", "name", "accuracy", "size_mb"] = "created_at"
+    order: Literal["asc", "desc"] = "desc"
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=10, ge=1, le=100)
+
+
+class MLModelPage(BaseModel):
+    items: list[MLModelRead]
+    total: int
+    page: int
+    page_size: int
+    pages: int
