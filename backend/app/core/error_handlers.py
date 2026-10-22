@@ -4,7 +4,16 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
+from app.core.exceptions import (
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    PayloadTooLargeError,
+    ServiceUnavailableError,
+    StorageError,
+    UnauthorizedError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +26,22 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ConflictError)
     async def conflict_handler(request: Request, exc: ConflictError):
         return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+    @app.exception_handler(BadRequestError)
+    async def bad_request_handler(request: Request, exc: BadRequestError):
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    @app.exception_handler(PayloadTooLargeError)
+    async def too_large_handler(request: Request, exc: PayloadTooLargeError):
+        return JSONResponse(status_code=413, content={"detail": str(exc)})
+
+    @app.exception_handler(StorageError)
+    async def storage_handler(request: Request, exc: StorageError):
+        return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+    @app.exception_handler(ServiceUnavailableError)
+    async def unavailable_handler(request: Request, exc: ServiceUnavailableError):
+        return JSONResponse(status_code=503, content={"detail": str(exc)})
 
     @app.exception_handler(ForbiddenError)
     async def forbidden_handler(request: Request, exc: ForbiddenError):

@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, Response, status
+from fastapi import APIRouter, Depends, File, Path, Query, Response, UploadFile, status
 
-from app.api.deps import get_current_user, get_history_service, get_model_service, require_admin
+from app.api.deps import get_current_user, get_file_service, get_history_service, get_model_service, require_admin
 from app.models.user import User
 from app.schemas.history import HistoryRead
 from app.schemas.ml_model import MLModelCreate, MLModelListQuery, MLModelPage, MLModelRead, MLModelUpdate
+from app.services.file_service import FileService
 from app.services.history_service import HistoryService
 from app.services.ml_model_service import MLModelService
 
@@ -60,3 +61,23 @@ def delete_model(
 ):
     service.delete_model(model_id, actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{model_id}/file", response_model=MLModelRead)
+def upload_model_file(
+    file: Annotated[UploadFile, File(description="Plik modelu")],
+    model_id: int = ModelId,
+    service: FileService = Depends(get_file_service),
+    actor: User = Depends(require_admin),
+):
+    """Dodaje plik do modelu albo zastępuje poprzedni."""
+    return service.upload(model_id, file.filename, file.file, actor)
+
+
+@router.delete("/{model_id}/file", response_model=MLModelRead)
+def delete_model_file(
+    model_id: int = ModelId,
+    service: FileService = Depends(get_file_service),
+    actor: User = Depends(require_admin),
+):
+    return service.remove(model_id, actor)

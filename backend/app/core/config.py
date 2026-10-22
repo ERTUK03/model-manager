@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     # Sekret do podpisywania tokenów JWT. Brak wartości domyślnej, minimum 32 znaki
     jwt_secret: SecretStr
     jwt_expire_minutes: int = 60
+
+    # Magazyn plików modeli (Azure Blob Storage). Do rozwoju lokalnego: emulator Azurite
+    # (STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true). W Azure: STORAGE_ACCOUNT_URL i tożsamość zarządzana
+    storage_connection_string: SecretStr | None = None
+    storage_account_url: str | None = None
+    storage_container: str = "models"
+    max_upload_mb: int = Field(default=200, ge=1, le=2048)
+    download_url_expire_seconds: int = Field(default=300, ge=30, le=3600)
 
     # Dane pierwszego administratora, używane wyłącznie przez scripts/create_admin.py
     admin_email: str | None = None

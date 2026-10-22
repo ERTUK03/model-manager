@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Integer, String, func
+from sqlalchemy import BigInteger, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -18,6 +18,11 @@ class MLModel(Base):
     accuracy: Mapped[float | None] = mapped_column(Float)
     size_mb: Mapped[float | None] = mapped_column(Float)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+    # Plik modelu w magazynie. file_key to wewnętrzna nazwa obiektu i nie jest zwracana przez API
+    file_key: Mapped[str | None] = mapped_column(String(255))
+    file_name: Mapped[str | None] = mapped_column(String(255))
+    file_size: Mapped[int | None] = mapped_column(BigInteger)
+    file_sha256: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

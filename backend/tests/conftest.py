@@ -5,16 +5,20 @@ import os
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 # Wartość wyłącznie testowa, nieużywana nigdzie poza testami
 os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-use"
+# Limit przesyłania ustawiony nisko, żeby testy mogły sprawdzić odrzucanie zbyt dużych plików
+os.environ["MAX_UPLOAD_MB"] = "1"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 import app.models  # noqa: E402,F401  (rejestruje tabele w metadanych)
+from app.api.deps import get_file_storage, get_storage_or_none  # noqa: E402
 from app.core.database import Base, SessionLocal, engine  # noqa: E402
 from app.core.roles import ROLE_ADMIN, ROLE_USER  # noqa: E402
 from app.core.security import create_access_token, hash_password  # noqa: E402
 from app.main import app  # noqa: E402
 from app.repositories.user_repository import UserRepository  # noqa: E402
+from tests.fakes import FakeStorage  # noqa: E402
 
 
 def _create_user(email: str, role: str) -> dict:
@@ -55,3 +59,12 @@ def user_client():
     headers = _create_user("user@example.com", ROLE_USER)
     with TestClient(app, raise_server_exceptions=False, headers=headers) as test_client:
         yield test_client
+
+
+@pytest.fixture(autouse=True)
+def storage():
+    """Atrapa magazynu plików: testy nie łączą się z Azure ani z emulatorem."""
+    fake = FakeStorage()
+    app.dependency_overrides[get_file_storage] = lambda: fake
+    app.dependency_overrides[get_storage_or_none] = lambda: fake
+    yield fake
