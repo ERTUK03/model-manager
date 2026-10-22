@@ -131,3 +131,11 @@ a:hover { text-decoration: underline; }
 .badge-action-created { color: #067647; border-color: #067647; }
 .badge-action-updated { color: var(--accent); border-color: var(--accent); }
 .badge-action-deleted { color: #d92d20; border-color: #d92d20; }
+
+/* --- pliki modeli --- */
+.file-section { margin-top: 28px; }
+.file-section h3 { margin-bottom: 10px; }
+.hash { font-size: 0.8rem; word-break: break-all; }
+.file-upload { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 14px; }
+.file-upload label { font-size: 0.9rem; color: var(--muted); }
+.file-upload p { margin: 0; }

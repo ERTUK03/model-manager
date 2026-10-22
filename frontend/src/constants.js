@@ -21,6 +21,7 @@ export const FIELD_LABELS = {
   version: "Wersja",
   accuracy: "Dokładność",
   size_mb: "Rozmiar",
+  file_name: "Plik",
   status: "Status",
 };
 
@@ -29,3 +30,8 @@ export const ACTION_LABELS = {
   updated: "Zmieniono",
   deleted: "Usunięto",
 };
+
+// Muszą odpowiadać ustawieniom back-endu (backend/app/services/file_service.py i MAX_UPLOAD_MB).
+// Ostateczną kontrolę zawsze wykonuje serwer, tu sprawdzamy tylko po to, by szybciej pokazać błąd.
+export const ALLOWED_FILE_EXTENSIONS = [".pkl", ".joblib", ".onnx", ".pt", ".pth", ".h5", ".safetensors"];
+export const MAX_UPLOAD_MB = 200;

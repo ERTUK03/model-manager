@@ -10,7 +10,7 @@ import { FRAMEWORKS, STATUS_LABELS, STATUSES } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
-import { formatAccuracy, formatSize } from "../utils/format";
+import { formatAccuracy, formatBytes, formatSize } from "../utils/format";
 import { hasActiveFilters, parseListParams, SORT_OPTIONS, toApiQuery, toUrlParams } from "../utils/listParams";
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -166,6 +166,7 @@ export default function ModelsPage() {
                   <th>Wersja</th>
                   <th>Dokładność</th>
                   <th>Rozmiar</th>
+                  <th>Plik</th>
                   <th>Status</th>
                   {isAdmin && <th>Akcje</th>}
                 </tr>
@@ -184,6 +185,7 @@ export default function ModelsPage() {
                     <td>{m.version}</td>
                     <td>{formatAccuracy(m.accuracy)}</td>
                     <td>{formatSize(m.size_mb)}</td>
+                    <td>{m.file_name ? formatBytes(m.file_size) : "—"}</td>
                     <td>
                       <StatusBadge status={m.status} />
                     </td>

@@ -9,6 +9,11 @@ server {
 
     # Zapytania do API trafiają do back-endu (prywatna podsieć)
     location /api/ {
+        # Przesyłanie plików modeli. Limit musi być nie mniejszy niż MAX_UPLOAD_MB back-endu
+        client_max_body_size 250m;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+
         proxy_pass ${BACKEND_URL};
         proxy_http_version 1.1;
         proxy_ssl_server_name on;

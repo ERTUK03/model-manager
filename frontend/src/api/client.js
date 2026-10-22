@@ -19,7 +19,9 @@ function messageForStatus(status) {
   if (status === 401) return "Sesja wygasła. Zaloguj się ponownie.";
   if (status === 403) return "Brak uprawnień do wykonania tej operacji.";
   if (status === 404) return "Nie znaleziono zasobu.";
+  if (status === 413) return "Plik jest za duży.";
   if (status === 409) return "Konflikt danych.";
+  if (status === 502 || status === 503) return "Usługa jest chwilowo niedostępna. Spróbuj ponownie później.";
   if (status >= 500) return "Błąd serwera. Spróbuj ponownie później.";
   return `Nieoczekiwany błąd (kod ${status}).`;
 }
@@ -28,7 +30,8 @@ function messageForStatus(status) {
 // Opcja auth: false pomija nagłówek z tokenem (logowanie i rejestracja).
 export async function request(path, { auth = true, ...options } = {}) {
   const headers = {};
-  if (options.body) headers["Content-Type"] = "application/json";
+  // Dla FormData (pliki) Content-Type ustawia przeglądarka, razem z granicą części formularza
+  if (options.body && !(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
   const token = auth ? tokenStore.get() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
 
