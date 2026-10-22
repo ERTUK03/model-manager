@@ -5,7 +5,14 @@ from fastapi import APIRouter, Depends, File, Path, Query, Response, UploadFile,
 from app.api.deps import get_current_user, get_file_service, get_history_service, get_model_service, require_admin
 from app.models.user import User
 from app.schemas.history import HistoryRead
-from app.schemas.ml_model import MLModelCreate, MLModelListQuery, MLModelPage, MLModelRead, MLModelUpdate
+from app.schemas.ml_model import (
+    DownloadInfo,
+    MLModelCreate,
+    MLModelListQuery,
+    MLModelPage,
+    MLModelRead,
+    MLModelUpdate,
+)
 from app.services.file_service import FileService
 from app.services.history_service import HistoryService
 from app.services.ml_model_service import MLModelService
@@ -27,6 +34,12 @@ def list_models(
 @router.get("/{model_id}", response_model=MLModelRead)
 def get_model(model_id: int = ModelId, service: MLModelService = Depends(get_model_service)):
     return service.get_model(model_id)
+
+
+@router.get("/{model_id}/download", response_model=DownloadInfo)
+def get_download_url(model_id: int = ModelId, service: FileService = Depends(get_file_service)):
+    """Zwraca krótko ważny adres, pod którym przeglądarka pobiera plik bezpośrednio z magazynu."""
+    return service.download_info(model_id)
 
 
 @router.get("/{model_id}/history", response_model=list[HistoryRead])

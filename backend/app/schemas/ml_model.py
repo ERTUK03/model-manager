@@ -70,3 +70,10 @@ class MLModelPage(BaseModel):
     page: int
     page_size: int
     pages: int
+
+
+class DownloadInfo(BaseModel):
+    url: str
+    file_name: str
+    file_size: int | None
+    expires_in: int
