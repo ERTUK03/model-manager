@@ -31,6 +31,13 @@ describe("describeChanges", () => {
     expect(result[2]).toMatchObject({ from: "Szkic", to: "Opublikowany" });
   });
 
+  it("opisuje dodanie, zamianę i usunięcie pliku", () => {
+    const [added] = describeChanges({ file_name: { from: null, to: "model.pkl" } });
+    expect(added).toMatchObject({ label: "Plik", from: "—", to: "model.pkl" });
+    const [removed] = describeChanges({ file_name: { from: "model.pkl", to: null } });
+    expect(removed).toMatchObject({ from: "model.pkl", to: "—" });
+  });
+
   it("pomija nieznane pola i obsługuje brak zmian", () => {
     expect(describeChanges({ hasło: { from: "a", to: "b" } })).toEqual([]);
     expect(describeChanges(null)).toEqual([]);

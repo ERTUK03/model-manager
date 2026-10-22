@@ -3,6 +3,7 @@ from math import ceil
 from app.core.exceptions import NotFoundError
 from app.models.user import User
 from app.schemas.ml_model import MLModelCreate, MLModelListQuery, MLModelUpdate
+from app.storage.base import delete_quietly
 
 # Pola, których zmiany trafiają do historii
 TRACKED_FIELDS = ("name", "description", "framework", "task", "version", "accuracy", "size_mb", "status")
@@ -15,9 +16,10 @@ def _snapshot(model) -> dict:
 class MLModelService:
     """Logika biznesowa dla modeli ML. Nie zna HTTP ani szczegółów bazy danych."""
 
-    def __init__(self, repository, history):
+    def __init__(self, repository, history, storage=None):
         self.repository = repository
         self.history = history
+        self.storage = storage
 
     def list_models(self, params: MLModelListQuery) -> dict:
         items, total = self.repository.list(params)
@@ -60,7 +62,9 @@ class MLModelService:
 
     def delete_model(self, model_id: int, actor: User) -> None:
         model = self.get_model(model_id)
-        name = model.name
+        name, file_key = model.name, model.file_key
         self.repository.delete(model_id)
         self.history.add(model_id, name, "deleted", None, actor)
         self.repository.commit()
+        if file_key and self.storage is not None:
+            delete_quietly(self.storage, file_key)

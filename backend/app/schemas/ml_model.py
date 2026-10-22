@@ -43,6 +43,9 @@ class MLModelRead(MLModelBase):
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
     id: int
+    file_name: str | None = None
+    file_size: int | None = None
+    file_sha256: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -67,3 +70,10 @@ class MLModelPage(BaseModel):
     page: int
     page_size: int
     pages: int
+
+
+class DownloadInfo(BaseModel):
+    url: str
+    file_name: str
+    file_size: int | None
+    expires_in: int

@@ -5,8 +5,8 @@ import HistoryEntry from "./HistoryEntry";
 import Spinner from "./Spinner";
 
 // Sekcja „Historia zmian” na stronie szczegółów modelu
-export default function ModelHistory({ modelId }) {
-  const { data: entries, loading, error, reload } = useFetch(() => getModelHistory(modelId), [modelId]);
+export default function ModelHistory({ modelId, refreshKey }) {
+  const { data: entries, loading, error, reload } = useFetch(() => getModelHistory(modelId), [modelId, refreshKey]);
 
   return (
     <section className="history">

@@ -1,4 +1,4 @@
-# Lokalna baza PostgreSQL do developmentu. Dane logowania pochodzą z pliku .env
+# Usługi pomocnicze do developmentu. Dane logowania do bazy pochodzą z pliku .env
 # (docker compose czyta go automatycznie).
 # Uruchomienie:  docker compose -f docker-compose.dev.yml up -d
 services:
@@ -13,5 +13,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Emulator Azure Blob Storage na pliki modeli (tylko do rozwoju lokalnego)
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --location /data --skipApiVersionCheck
+    ports:
+      - "10000:10000"
+    volumes:
+      - azurite-data:/data
+
 volumes:
   pgdata:
+  azurite-data:

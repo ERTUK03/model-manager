@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { deleteModel, getModels } from "../api/models";
 import ConfirmDialog from "../components/ConfirmDialog";
+import DownloadButton from "../components/DownloadButton";
 import ErrorMessage from "../components/ErrorMessage";
 import Pagination from "../components/Pagination";
 import Spinner from "../components/Spinner";
@@ -10,7 +11,7 @@ import { FRAMEWORKS, STATUS_LABELS, STATUSES } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useFetch } from "../hooks/useFetch";
-import { formatAccuracy, formatSize } from "../utils/format";
+import { formatAccuracy, formatBytes, formatSize } from "../utils/format";
 import { hasActiveFilters, parseListParams, SORT_OPTIONS, toApiQuery, toUrlParams } from "../utils/listParams";
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -166,6 +167,7 @@ export default function ModelsPage() {
                   <th>Wersja</th>
                   <th>Dokładność</th>
                   <th>Rozmiar</th>
+                  <th>Plik</th>
                   <th>Status</th>
                   {isAdmin && <th>Akcje</th>}
                 </tr>
@@ -184,6 +186,18 @@ export default function ModelsPage() {
                     <td>{m.version}</td>
                     <td>{formatAccuracy(m.accuracy)}</td>
                     <td>{formatSize(m.size_mb)}</td>
+                    <td>
+                      {m.file_name ? (
+                        <span className="file-cell">
+                          {formatBytes(m.file_size)}
+                          <DownloadButton modelId={m.id} className="link-button">
+                            Pobierz
+                          </DownloadButton>
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>
                       <StatusBadge status={m.status} />
                     </td>

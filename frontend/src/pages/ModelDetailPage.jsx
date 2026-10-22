@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { deleteModel, getModel } from "../api/models";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ErrorMessage from "../components/ErrorMessage";
+import ModelFile from "../components/ModelFile";
 import ModelHistory from "../components/ModelHistory";
 import Spinner from "../components/Spinner";
 import StatusBadge from "../components/StatusBadge";
@@ -77,7 +78,9 @@ export default function ModelDetailPage() {
             <dd>{formatDate(model.updated_at)}</dd>
           </dl>
 
-          <ModelHistory modelId={id} />
+          <ModelFile model={model} onChanged={reload} />
+
+          <ModelHistory modelId={id} refreshKey={model.updated_at} />
 
           <ConfirmDialog
             open={confirmOpen}

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import api_router
 from app.core.config import get_settings
 from app.core.error_handlers import register_exception_handlers
+from app.core.middleware import register_upload_limit
 
 settings = get_settings()
 
@@ -25,4 +26,5 @@ if settings.cors_origins_list:
     )
 
 register_exception_handlers(app)
+register_upload_limit(app)
 app.include_router(api_router, prefix="/api")

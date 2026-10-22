@@ -7,3 +7,6 @@ alembic>=1.13
 pwdlib[argon2]>=0.2
 email-validator>=2.1
 PyJWT>=2.8
+python-multipart>=0.0.9
+azure-storage-blob>=12.19
+azure-identity>=1.15

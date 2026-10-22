@@ -18,3 +18,19 @@ class UnauthorizedError(AppError):
 
 class ForbiddenError(AppError):
     """Użytkownik jest zalogowany, ale nie ma uprawnień do operacji."""
+
+
+class BadRequestError(AppError):
+    """Żądanie jest poprawne składniowo, ale nie spełnia reguł (np. zły typ pliku)."""
+
+
+class PayloadTooLargeError(AppError):
+    """Przesłane dane przekraczają dozwolony rozmiar."""
+
+
+class StorageError(AppError):
+    """Magazyn plików jest niedostępny lub odrzucił operację."""
+
+
+class ServiceUnavailableError(AppError):
+    """Funkcja nie jest skonfigurowana w tym środowisku."""
