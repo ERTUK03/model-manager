@@ -7,3 +7,6 @@ export function uploadModelFile(id, file) {
 }
 
 export const deleteModelFile = (id) => request(`/models/${id}/file`, { method: "DELETE" });
+
+// Zwraca { url, file_name, file_size, expires_in }. Adres jest krótko ważny i prowadzi bezpośrednio do magazynu
+export const getDownloadInfo = (id) => request(`/models/${id}/download`);

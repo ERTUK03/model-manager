@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { deleteModel, getModels } from "../api/models";
 import ConfirmDialog from "../components/ConfirmDialog";
+import DownloadButton from "../components/DownloadButton";
 import ErrorMessage from "../components/ErrorMessage";
 import Pagination from "../components/Pagination";
 import Spinner from "../components/Spinner";
@@ -185,7 +186,18 @@ export default function ModelsPage() {
                     <td>{m.version}</td>
                     <td>{formatAccuracy(m.accuracy)}</td>
                     <td>{formatSize(m.size_mb)}</td>
-                    <td>{m.file_name ? formatBytes(m.file_size) : "—"}</td>
+                    <td>
+                      {m.file_name ? (
+                        <span className="file-cell">
+                          {formatBytes(m.file_size)}
+                          <DownloadButton modelId={m.id} className="link-button">
+                            Pobierz
+                          </DownloadButton>
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>
                       <StatusBadge status={m.status} />
                     </td>

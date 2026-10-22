@@ -6,6 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { validateModelFile } from "../utils/fileValidation";
 import { formatBytes } from "../utils/format";
 import ConfirmDialog from "./ConfirmDialog";
+import DownloadButton from "./DownloadButton";
 
 // Sekcja „Plik modelu” na stronie szczegółów: informacje o pliku i (dla administratora) wgrywanie oraz usuwanie
 export default function ModelFile({ model, onChanged }) {
@@ -72,6 +73,12 @@ export default function ModelFile({ model, onChanged }) {
         </dl>
       ) : (
         <p className="muted">Do tego modelu nie dodano jeszcze pliku.</p>
+      )}
+
+      {hasFile && (
+        <p>
+          <DownloadButton modelId={model.id} />
+        </p>
       )}
 
       {isAdmin && (
