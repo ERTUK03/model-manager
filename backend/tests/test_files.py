@@ -163,8 +163,9 @@ def test_failed_database_write_does_not_leave_orphan_file(client, model_id, stor
     assert client.get(f"/api/models/{model_id}").json()["file_name"] is None
 
 
-def test_upload_without_configured_storage_returns_503(client, model_id):
-    app.dependency_overrides.pop(get_file_storage)  # brak atrapy i brak zmiennych środowiskowych magazynu
+def test_upload_without_configured_storage_returns_503(client, model_id, monkeypatch):
+    app.dependency_overrides.pop(get_file_storage)  # usuwamy atrapę magazynu...
+    monkeypatch.setattr("app.api.deps.get_storage", lambda: None)  # ...i symulujemy brak konfiguracji
     response = upload(client, model_id)
     assert response.status_code == 503
     assert response.json() == {"detail": "Magazyn plików nie jest skonfigurowany"}
