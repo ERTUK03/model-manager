@@ -7,6 +7,28 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Sonda stanu kontenera (nie dotyka back-endu)
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Wersja wdrożonego front-endu: zawsze świeża, bez pamięci podręcznej (sprawdza ją healthcheck po wdrożeniu)
+    location = /version.json {
+        add_header Cache-Control "no-store";
+    }
+
+    # Po nowym wdrożeniu przeglądarka ma od razu pobrać nową wersję aplikacji
+    location = /index.html {
+        add_header Cache-Control "no-store";
+    }
+
+    # Pliki z hashem w nazwie nigdy się nie zmieniają, więc można je trzymać w pamięci podręcznej bardzo długo
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
     # Zapytania do API trafiają do back-endu (prywatna podsieć)
     location /api/ {
         # Przesyłanie plików modeli. Limit musi być nie mniejszy niż MAX_UPLOAD_MB back-endu

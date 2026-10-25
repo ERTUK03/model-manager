@@ -1,9 +1,10 @@
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import AdminRoute from "./components/AdminRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { ROLE_LABELS } from "./constants";
+import { APP_VERSION, ROLE_LABELS } from "./constants";
 import { useAuth } from "./context/AuthContext";
 import { useToast } from "./context/ToastContext";
+import { shortVersion } from "./utils/format";
 import HistoryPage from "./pages/HistoryPage";
 import LoginPage from "./pages/LoginPage";
 import ModelDetailPage from "./pages/ModelDetailPage";
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
+      <footer className="footer muted small">Wersja: {shortVersion(APP_VERSION)}</footer>
     </div>
   );
 }

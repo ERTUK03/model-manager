@@ -35,3 +35,6 @@ export const ACTION_LABELS = {
 // Ostateczną kontrolę zawsze wykonuje serwer, tu sprawdzamy tylko po to, by szybciej pokazać błąd.
 export const ALLOWED_FILE_EXTENSIONS = [".pkl", ".joblib", ".onnx", ".pt", ".pth", ".h5", ".safetensors"];
 export const MAX_UPLOAD_MB = 200;
+
+// Wersja aplikacji (skrót commita) wpisywana podczas budowania obrazu. Lokalnie: "dev"
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "dev";

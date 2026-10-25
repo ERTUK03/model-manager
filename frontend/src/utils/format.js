@@ -22,3 +22,8 @@ export function formatBytes(bytes) {
   }
   return unit === 0 ? `${value} B` : `${value.toFixed(1)} ${units[unit]}`;
 }
+
+// Pełny skrót commita (40 znaków) skracamy do 7, inne wartości (np. "dev") zostają bez zmian
+export function shortVersion(version) {
+  return /^[0-9a-f]{40}$/i.test(version) ? version.slice(0, 7) : version;
+}
