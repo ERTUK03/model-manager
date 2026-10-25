@@ -7,6 +7,8 @@ os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["JWT_SECRET"] = "test-only-secret-not-for-production-use"
 # Limit przesyłania ustawiony nisko, żeby testy mogły sprawdzić odrzucanie zbyt dużych plików
 os.environ["MAX_UPLOAD_MB"] = "1"
+# Ustawienia, od których zależą testy, są wymuszone. Dzięki temu prawdziwy plik .env developera
+# (np. z magazynem Azurite) nie zmienia wyników testów i testy nigdy nie łączą się z prawdziwym magazynem
 os.environ["STORAGE_CONNECTION_STRING"] = ""
 os.environ["STORAGE_ACCOUNT_URL"] = ""
 os.environ["STORAGE_CONTAINER"] = "models"
