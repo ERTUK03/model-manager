@@ -13,6 +13,7 @@ os.environ["STORAGE_CONNECTION_STRING"] = ""
 os.environ["STORAGE_ACCOUNT_URL"] = ""
 os.environ["STORAGE_CONTAINER"] = "models"
 os.environ["DOWNLOAD_URL_EXPIRE_SECONDS"] = "300"
+os.environ["APP_VERSION"] = "test-version"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

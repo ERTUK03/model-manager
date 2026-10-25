@@ -10,7 +10,7 @@ settings = get_settings()
 
 app = FastAPI(
     title="Model Manager API",
-    version="0.1.0",
+    version=settings.app_version,
     # Dokumentacja pod /api/..., żeby działała przez proxy nginx
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
