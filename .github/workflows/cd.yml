@@ -1,0 +1,188 @@
+name: CD
+
+# Wdrożenie uruchamia się samo po udanym przebiegu CI na gałęzi main.
+# Ręczne uruchomienie (workflow_dispatch) służy do pierwszego wdrożenia: zbudowania i wysłania obrazów.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Wdrożenia idą jedno po drugim, żeby dwa przebiegi nie nadpisywały się nawzajem
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ${{ vars.ACR_NAME }}.azurecr.io
+  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+
+jobs:
+  build:
+    name: Budowanie i publikacja obrazów
+    # Wdrażamy tylko po udanym CI wywołanym pushem (nie po Pull Requestach)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      id-token: write # wymagane do logowania OIDC
+      contents: read
+    outputs:
+      sha: ${{ steps.ref.outputs.sha }}
+    steps:
+      - name: Ustalenie commitu do wdrożenia
+        id: ref
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      # Wdrażamy dokładnie ten commit, który przeszedł CI, a nie najnowszy stan main
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.ref.outputs.sha }}
+
+      - name: Logowanie do Azure (OIDC, bez haseł)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Logowanie do rejestru kontenerów
+        run: az acr login --name "${{ vars.ACR_NAME }}"
+
+      - name: Back-end - budowanie i wysłanie obrazu
+        env:
+          SHA: ${{ steps.ref.outputs.sha }}
+        run: |
+          docker build \
+            --tag "$REGISTRY/model-manager-backend:$SHA" \
+            --tag "$REGISTRY/model-manager-backend:latest" \
+            --build-arg APP_VERSION="$SHA" \
+            backend
+          docker push --all-tags "$REGISTRY/model-manager-backend"
+
+      - name: Front-end - budowanie i wysłanie obrazu
+        env:
+          SHA: ${{ steps.ref.outputs.sha }}
+        run: |
+          docker build \
+            --tag "$REGISTRY/model-manager-frontend:$SHA" \
+            --tag "$REGISTRY/model-manager-frontend:latest" \
+            --build-arg VITE_APP_VERSION="$SHA" \
+            frontend
+          docker push --all-tags "$REGISTRY/model-manager-frontend"
+
+  deploy-app:
+    name: Wdrożenie warstwy aplikacji (back-end, podsieć prywatna)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+    steps:
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Nowa rewizja back-endu
+        id: deploy
+        env:
+          APP: ${{ vars.BACKEND_APP_NAME }}
+          SHA: ${{ needs.build.outputs.sha }}
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          if az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors > /dev/null 2>&1; then
+            az containerapp update --name "$APP" --resource-group "$RESOURCE_GROUP" \
+              --image "$REGISTRY/model-manager-backend:$SHA" --only-show-errors --output none
+            echo "deployed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Aplikacja $APP jeszcze nie istnieje. Obraz został wysłany, utwórz aplikacje skryptem config/azure/02-create-apps.sh."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-web:
+    name: Wdrożenie warstwy web (front-end, podsieć publiczna)
+    needs: [build, deploy-app]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+    steps:
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Nowa rewizja front-endu
+        id: deploy
+        env:
+          APP: ${{ vars.FRONTEND_APP_NAME }}
+          SHA: ${{ needs.build.outputs.sha }}
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          if az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors > /dev/null 2>&1; then
+            az containerapp update --name "$APP" --resource-group "$RESOURCE_GROUP" \
+              --image "$REGISTRY/model-manager-frontend:$SHA" --only-show-errors --output none
+            echo "deployed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Aplikacja $APP jeszcze nie istnieje. Obraz został wysłany, utwórz aplikacje skryptem config/azure/02-create-apps.sh."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    name: Healthcheck wdrożonej aplikacji
+    needs: [build, deploy-app, deploy-web]
+    if: needs.deploy-app.outputs.deployed == 'true' && needs.deploy-web.outputs.deployed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Publiczny adres musi zwracać dokładnie wersję (skrót commita) właśnie wdrożoną.
+      # W trybie jednej rewizji Container Apps stara wersja działa, dopóki nowa nie stanie się zdrowa,
+      # więc przez chwilę odpowiada jeszcze poprzedni commit i dlatego ponawiamy próby.
+      - name: Oczekiwanie na nową wersję
+        env:
+          SHA: ${{ needs.build.outputs.sha }}
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: |
+          url="${PUBLIC_URL%/}"
+          ready=0
+          for attempt in $(seq 1 45); do
+            web=$(curl -fsS --max-time 10 "$url/version.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)
+            api=$(curl -fsS --max-time 10 "$url/api/health" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)
+            echo "próba $attempt: front-end=${web:-brak} back-end=${api:-brak} (oczekiwane: ${SHA:0:7})"
+            if [ "$web" = "$SHA" ] && [ "$api" = "$SHA" ]; then
+              ready=1
+              break
+            fi
+            sleep 10
+          done
+          if [ "$ready" != 1 ]; then
+            echo "::error::Aplikacja nie zwraca oczekiwanej wersji ${SHA:0:7}. Sprawdź logi kontenerów (docs/deployment.md)."
+            exit 1
+          fi
+          curl -fsS --max-time 10 "$url/api/health/ready" > /dev/null
+          curl -fsS --max-time 10 --output /dev/null "$url/"
+          {
+            echo "### Wdrożenie zakończone"
+            echo ""
+            echo "- Adres: $url"
+            echo "- Wersja: \`$SHA\`"
+            echo "- Front-end (\`/version.json\`), back-end (\`/api/health\`) i baza (\`/api/health/ready\`) odpowiadają poprawnie"
+          } >> "$GITHUB_STEP_SUMMARY"
