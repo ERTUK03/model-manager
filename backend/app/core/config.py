@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_env: str = "development"
+    # Wersja aplikacji (skrót commita), wpisywana do obrazu podczas budowania. Zwraca ją /api/health
+    app_version: str = "dev"
     # Lista adresów oddzielonych przecinkami. Puste = CORS wyłączony (ruch idzie przez proxy nginx)
     cors_origins: str = ""
     # SecretStr: wartość nie pojawia się w logach ani w repr().

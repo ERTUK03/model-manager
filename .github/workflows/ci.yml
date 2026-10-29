@@ -67,6 +67,27 @@ jobs:
       - name: Budowanie obrazu (bez publikacji)
         run: docker build --tag model-manager-frontend:ci frontend
 
+  docker-backend:
+    name: Obraz Docker back-endu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Budowanie obrazu (bez publikacji)
+        run: docker build --tag model-manager-backend:ci --build-arg APP_VERSION=ci backend
+      # Uruchamiamy kontener z lokalną bazą SQLite: sprawdza migracje przy starcie i endpointy stanu
+      - name: Test uruchomieniowy kontenera
+        run: |
+          docker run -d --name api -p 8000:8000 \
+            -e DATABASE_URL=sqlite:////tmp/ci.db \
+            -e JWT_SECRET=ci-only-secret-not-used-anywhere-0123456789 \
+            model-manager-backend:ci
+          for i in $(seq 1 30); do curl -fsS http://localhost:8000/api/health && break; sleep 2; done
+          curl -fsS http://localhost:8000/api/health | grep -q '"version":"ci"'
+          curl -fsS http://localhost:8000/api/health/ready | grep -q '"status":"ready"'
+      - name: Logi kontenera (po błędzie)
+        if: failure()
+        run: docker logs api
+
   secrets:
     name: Skanowanie sekretów
     runs-on: ubuntu-latest
