@@ -81,7 +81,7 @@ jobs:
           docker push --all-tags "$REGISTRY/model-manager-frontend"
 
   deploy-app:
-    name: Wdrożenie warstwy aplikacji (back-end, podsieć prywatna)
+    name: Wdrożenie warstwy aplikacji (back-end, ingress wewnętrzny)
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -114,7 +114,7 @@ jobs:
           fi
 
   deploy-web:
-    name: Wdrożenie warstwy web (front-end, podsieć publiczna)
+    name: Wdrożenie warstwy web (front-end, ingress publiczny)
     needs: [build, deploy-app]
     runs-on: ubuntu-latest
     timeout-minutes: 10
