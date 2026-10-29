@@ -6,6 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 # shellcheck source=/dev/null
 source ./vars.sh
+ENV_NAME="${ENV_NAME:-cae-main}"
 
 REGISTRY="${ACR_NAME}.azurecr.io"
 STORAGE_URL=$(az storage account show --resource-group "$RG" --name "$STORAGE_ACCOUNT" --query primaryEndpoints.blob -o tsv)
@@ -14,8 +15,9 @@ STORAGE_URL="${STORAGE_URL%/}"
 echo "Obrazy w rejestrze (powinny być oba, wysłane przez workflow CD):"
 az acr repository list --name "$ACR_NAME" -o tsv
 
-read -rp "Użytkownik PostgreSQL: " PG_USER
-read -rsp "Hasło PostgreSQL: " PG_PASSWORD; echo
+PG_SERVER_FQDN=$(az postgres flexible-server show --resource-group "$RG" --name "$PG_SERVER" --query fullyQualifiedDomainName -o tsv)
+PG_USER="$PG_ADMIN_USER"
+read -rsp "Hasło PostgreSQL (użytkownik $PG_USER): " PG_PASSWORD; echo
 read -rp "E-mail pierwszego administratora aplikacji: " ADMIN_EMAIL
 read -rsp "Hasło administratora aplikacji (min. 8 znaków, litera i cyfra): " ADMIN_PASSWORD; echo
 
@@ -28,11 +30,12 @@ BACKEND_IDENTITY_ID=$(az identity show --resource-group "$RG" --name id-backend 
 BACKEND_CLIENT_ID=$(az identity show --resource-group "$RG" --name id-backend --query clientId -o tsv)
 FRONTEND_IDENTITY_ID=$(az identity show --resource-group "$RG" --name id-frontend --query id -o tsv)
 
-echo "Back-end (środowisko wewnętrzne, podsieć prywatna)"
+echo "Back-end (ingress wewnętrzny: dostępny tylko dla aplikacji w środowisku)"
 # - jedna replika: migracje bazy uruchamiają się przy starcie kontenera i nie powinny działać równolegle
 # - AZURE_CLIENT_ID wskazuje tożsamość, której aplikacja używa do magazynu plików
-# - ruch HTTP jest dozwolony, bo front-end łączy się z back-endem wewnątrz sieci wirtualnej
-az containerapp create --name "$BACKEND_APP" --resource-group "$RG" --environment "$ENV_APP" \
+# - ingress wewnętrzny: back-end nie ma publicznego adresu, a front-end woła go po nazwie aplikacji
+# - ruch HTTP jest dozwolony, bo wywołania odbywają się wewnątrz środowiska
+az containerapp create --name "$BACKEND_APP" --resource-group "$RG" --environment "$ENV_NAME" \
   --image "${REGISTRY}/model-manager-backend:latest" \
   --user-assigned "$BACKEND_IDENTITY_ID" \
   --registry-server "$REGISTRY" --registry-identity "$BACKEND_IDENTITY_ID" \
@@ -45,17 +48,16 @@ az containerapp create --name "$BACKEND_APP" --resource-group "$RG" --environmen
     "MAX_UPLOAD_MB=200" "AZURE_CLIENT_ID=${BACKEND_CLIENT_ID}" \
   --output none
 
-BACKEND_FQDN=$(az containerapp show --name "$BACKEND_APP" --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv)
-echo "Adres wewnętrzny back-endu: $BACKEND_FQDN"
+echo "Back-end utworzony. Front-end będzie wywoływał go pod adresem http://${BACKEND_APP} (tylko wewnątrz środowiska)."
 
-echo "Front-end (środowisko z publicznym adresem, podsieć publiczna)"
-az containerapp create --name "$FRONTEND_APP" --resource-group "$RG" --environment "$ENV_WEB" \
+echo "Front-end (ingress zewnętrzny: publiczny adres)"
+az containerapp create --name "$FRONTEND_APP" --resource-group "$RG" --environment "$ENV_NAME" \
   --image "${REGISTRY}/model-manager-frontend:latest" \
   --user-assigned "$FRONTEND_IDENTITY_ID" \
   --registry-server "$REGISTRY" --registry-identity "$FRONTEND_IDENTITY_ID" \
   --ingress external --target-port 80 \
   --min-replicas 1 --max-replicas 2 --cpu 0.25 --memory 0.5Gi \
-  --env-vars "BACKEND_URL=http://${BACKEND_FQDN}" \
+  --env-vars "BACKEND_URL=http://${BACKEND_APP}" \
   --output none
 
 PUBLIC_FQDN=$(az containerapp show --name "$FRONTEND_APP" --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv)
