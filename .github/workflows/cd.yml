@@ -103,14 +103,28 @@ jobs:
           APP: ${{ vars.BACKEND_APP_NAME }}
           SHA: ${{ needs.build.outputs.sha }}
         run: |
+          # Brakująca konfiguracja ma kończyć się wyraźnym błędem, a nie cichym pominięciem wdrożenia
+          for name in APP RESOURCE_GROUP REGISTRY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Brak wartości $name. Sprawdź zmienne repozytorium (Settings -> Secrets and variables -> Actions -> zakładka Variables, nie Secrets)."
+              exit 1
+            fi
+          done
           az extension add --name containerapp --upgrade --only-show-errors
-          if az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors > /dev/null 2>&1; then
+          if output=$(az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors 2>&1); then
             az containerapp update --name "$APP" --resource-group "$RESOURCE_GROUP" \
               --image "$REGISTRY/model-manager-backend:$SHA" --only-show-errors --output none
             echo "deployed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Aplikacja $APP jeszcze nie istnieje. Obraz został wysłany, utwórz aplikacje skryptem config/azure/02-create-apps.sh."
+          elif echo "$output" | grep -q "ResourceNotFound"; then
+            # Tylko prawdziwy brak aplikacji (pierwsze uruchomienie, przed 02-create-apps.sh) pomija wdrożenie
+            echo "$output"
+            echo "::notice::Aplikacja $APP nie istnieje w grupie $RESOURCE_GROUP. Obraz został wysłany, utwórz aplikacje skryptem config/azure/02-create-apps.sh."
             echo "deployed=false" >> "$GITHUB_OUTPUT"
+          else
+            # Każdy inny błąd (brak uprawnień, zła grupa zasobów, zła subskrypcja) zatrzymuje wdrożenie i pokazuje przyczynę
+            echo "::error::Nie udało się odczytać aplikacji $APP w grupie $RESOURCE_GROUP:"
+            echo "$output"
+            exit 1
           fi
 
   deploy-web:
@@ -136,14 +150,28 @@ jobs:
           APP: ${{ vars.FRONTEND_APP_NAME }}
           SHA: ${{ needs.build.outputs.sha }}
         run: |
+          # Brakująca konfiguracja ma kończyć się wyraźnym błędem, a nie cichym pominięciem wdrożenia
+          for name in APP RESOURCE_GROUP REGISTRY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Brak wartości $name. Sprawdź zmienne repozytorium (Settings -> Secrets and variables -> Actions -> zakładka Variables, nie Secrets)."
+              exit 1
+            fi
+          done
           az extension add --name containerapp --upgrade --only-show-errors
-          if az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors > /dev/null 2>&1; then
+          if output=$(az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors 2>&1); then
             az containerapp update --name "$APP" --resource-group "$RESOURCE_GROUP" \
               --image "$REGISTRY/model-manager-frontend:$SHA" --only-show-errors --output none
             echo "deployed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Aplikacja $APP jeszcze nie istnieje. Obraz został wysłany, utwórz aplikacje skryptem config/azure/02-create-apps.sh."
+          elif echo "$output" | grep -q "ResourceNotFound"; then
+            # Tylko prawdziwy brak aplikacji (pierwsze uruchomienie, przed 02-create-apps.sh) pomija wdrożenie
+            echo "$output"
+            echo "::notice::Aplikacja $APP nie istnieje w grupie $RESOURCE_GROUP. Obraz został wysłany, utwórz aplikacje skryptem config/azure/02-create-apps.sh."
             echo "deployed=false" >> "$GITHUB_OUTPUT"
+          else
+            # Każdy inny błąd (brak uprawnień, zła grupa zasobów, zła subskrypcja) zatrzymuje wdrożenie i pokazuje przyczynę
+            echo "::error::Nie udało się odczytać aplikacji $APP w grupie $RESOURCE_GROUP:"
+            echo "$output"
+            exit 1
           fi
 
   verify:
@@ -161,6 +189,10 @@ jobs:
           SHA: ${{ needs.build.outputs.sha }}
           PUBLIC_URL: ${{ vars.PUBLIC_URL }}
         run: |
+          if [ -z "$PUBLIC_URL" ]; then
+            echo "::error::Brak zmiennej PUBLIC_URL (Settings -> Secrets and variables -> Actions -> Variables)."
+            exit 1
+          fi
           url="${PUBLIC_URL%/}"
           ready=0
           for attempt in $(seq 1 45); do
