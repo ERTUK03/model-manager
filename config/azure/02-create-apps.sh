@@ -55,7 +55,7 @@ az containerapp create --name "$FRONTEND_APP" --resource-group "$RG" --environme
   --image "${REGISTRY}/model-manager-frontend:latest" \
   --user-assigned "$FRONTEND_IDENTITY_ID" \
   --registry-server "$REGISTRY" --registry-identity "$FRONTEND_IDENTITY_ID" \
-  --ingress external --target-port 80 \
+  --ingress external --target-port 80 --allow-insecure false \
   --min-replicas 1 --max-replicas 2 --cpu 0.25 --memory 0.5Gi \
   --env-vars "BACKEND_URL=http://${BACKEND_APP}" \
   --output none
