@@ -17,7 +17,7 @@ done
 echo "2/4 Baza: blokada całego pozostałego ruchu przychodzącego (poza regułą allow-postgres-from-web)"
 az network nsg rule create --resource-group "$RG" --nsg-name nsg-db --name deny-all-inbound \
   --priority 4000 --direction Inbound --access Deny --protocol '*' \
-  --source-address-prefixes VirtualNetwork Internet --source-port-ranges '*' \
+  --source-address-prefixes '*' --source-port-ranges '*' \
   --destination-address-prefixes '*' --destination-port-ranges '*' --output none
 
 echo "3/4 Front-end: wymuszenie HTTPS (żądania HTTP są przekierowywane na HTTPS)"
