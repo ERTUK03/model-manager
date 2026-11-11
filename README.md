@@ -129,3 +129,62 @@ Pełna dokumentacja (pola, reguły walidacji, przykłady, format błędów): [do
 | `DELETE` | `/api/models/{id}` | Usunięcie modelu | 204 |
 
 Błędy: 400 (nieprawidłowe dane), 404 (nie znaleziono), 500 (błąd serwera).
+
+## Bezpieczeństwo sieci i szyfrowanie ruchu
+
+Aplikacja ma trzy warstwy: **Web** (front-end), **App** (back-end API) i **DB** (PostgreSQL). Subskrypcja studencka pozwala na jedno środowisko Container Apps na region, więc Web i App działają w jednym środowisku w podsieci `snet-web`. Rozdziela je ingress: front-end ma ingress zewnętrzny, a back-end wewnętrzny. Baza leży w osobnej, prywatnej podsieci `snet-db`. Reguły zapory są opisane w `config/azure/` i sprawdzane automatycznie skryptem `04-verify-security.sh`.
+
+### Reguły przychodzące (Inbound)
+
+| # | Warstwa | Źródło | Cel i port | Akcja | Gdzie wymuszone | Uwagi |
+|---|---|---|---|---|---|---|
+| W1 | Web | Internet | 443/TCP (HTTPS) | Allow | `nsg-web` (priorytet 100), ingress zewnętrzny | certyfikat zarządzany przez Azure |
+| W2 | Web | Internet | 80/TCP (HTTP) | Allow, odpowiedź to przekierowanie na HTTPS | `nsg-web` (100), ingress (`allowInsecure=false`) | żadna treść nie jest serwowana po HTTP |
+| W3 | Web | Internet | 22, 3389 (SSH, RDP) | Deny | `nsg-web` (110) | w kontenerach nie ma usług SSH ani RDP |
+| W4 | Web | Pozostały ruch z Internetu | dowolny | Deny | reguła domyślna `DenyAllInBound` (65500) | |
+| A1 | App | Aplikacje tego samego środowiska (nginx front-endu) | ingress wewnętrzny, HTTP | Allow | ingress wewnętrzny Container Apps | back-end jest osiągalny pod nazwą `ca-backend` tylko wewnątrz środowiska |
+| A2 | App | Internet | dowolny | brak trasy | `ingress.external=false` | API jest dostępne publicznie wyłącznie przez `/api` front-endu |
+| A3 | App | Internet | 22, 3389 | Deny | `nsg-web` (110) i `nsg-app` (110) | `nsg-app` chroni zarezerwowaną, pustą podsieć |
+| D1 | DB | Podsieć z back-endem `10.0.0.0/23` | 5432/TCP | Allow | `nsg-db` (100) | jedyna dozwolona ścieżka do bazy |
+| D2 | DB | Internet (0.0.0.0/0) i pozostałe podsieci | dowolny, w tym 5432 i 3306 | Deny | `nsg-db` (4000) | blokuje też domyślną regułę `AllowVnetInBound` |
+| D3 | DB | Internet | 22, 3389 | Deny | `nsg-db` (110) | |
+| D4 | DB | cały Internet | publiczny punkt końcowy | brak | `publicNetworkAccess=Disabled` | serwer działa wyłącznie w prywatnej podsieci |
+
+Zasada najmniejszych uprawnień obejmuje też tożsamości: kontenery pobierają obrazy rolą AcrPull, back-end ma dostęp tylko do jednego konta magazynu, a kontener działa jako zwykły użytkownik.
+
+### Reguły wychodzące (Outbound)
+
+W projekcie nie ma własnych reguł wychodzących: obowiązują domyślne reguły NSG (`AllowVnetOutBound`, `AllowInternetOutBound`, `DenyAllOutBound`). Środowisko Container Apps i PostgreSQL potrzebują ruchu platformowego (rejestr obrazów, monitoring), więc zbyt restrykcyjne reguły mogłyby uniemożliwić ich działanie. Poniżej zestawienie faktycznych połączeń wychodzących:
+
+| Warstwa | Cel | Port | Szyfrowanie | Uwagi |
+|---|---|---|---|---|
+| Web | back-end `ca-backend` (ingress wewnętrzny) | 80/TCP | HTTP wewnątrz środowiska | brak trasy z Internetu |
+| Web, App | Azure Container Registry | 443/TCP | TLS | pobieranie obrazów tożsamością zarządzaną |
+| App | PostgreSQL w `snet-db` | 5432/TCP | TLS (`sslmode=require`) | jedyny ruch do bazy, patrz D1 |
+| App | Azure Blob Storage | 443/TCP | TLS | zapis plików modeli |
+| App | Microsoft Entra ID | 443/TCP | TLS | token tożsamości zarządzanej |
+| DB | brak połączeń inicjowanych przez aplikację | | | kopie zapasowe zarządza platforma |
+
+### Szyfrowanie ruchu
+
+| Połączenie | Szyfrowanie | Uwagi |
+|---|---|---|
+| Przeglądarka do front-endu | HTTPS (TLS 1.2 lub nowszy), certyfikat zarządzany przez Azure | żądanie HTTP dostaje przekierowanie na HTTPS, a nagłówek HSTS każe przeglądarce używać tylko HTTPS |
+| Front-end do back-endu | HTTP wewnątrz środowiska Container Apps | ruch nie opuszcza środowiska, ingress jest wewnętrzny |
+| Back-end do PostgreSQL | TLS (`sslmode=require`) | |
+| Back-end do Blob Storage | HTTPS, minimalnie TLS 1.2 | |
+| Przeglądarka do Blob Storage (pobieranie pliku) | HTTPS i podpis SAS ważny 5 minut | |
+| GitHub Actions do Azure | HTTPS, uwierzytelnianie OIDC | brak haseł w sekretach |
+
+Front-end dodatkowo wysyła nagłówki `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options` i `Referrer-Policy` oraz nie ujawnia wersji serwera.
+
+### Weryfikacja
+
+Automatyczna weryfikacja (reguły z uwzględnieniem priorytetów, izolacja bazy, ingress, HTTPS i certyfikat, przekierowanie, nagłówki, magazyn plików) w Azure Cloud Shell:
+
+```bash
+cd config/azure
+./04-verify-security.sh
+```
+
+Skrypt wypisuje PASS lub FAIL dla każdego sprawdzenia i kończy się kodem większym od zera przy błędzie. Logikę oceny reguł zapory testują testy jednostkowe: `python3 -m unittest test_audit_nsg -v` (w katalogu `config/azure`).
