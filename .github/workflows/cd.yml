@@ -17,10 +17,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  REGISTRY: ${{ vars.ACR_NAME }}.azurecr.io
-  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-
 jobs:
   build:
     name: Budowanie i publikacja obrazów
@@ -56,12 +52,21 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Logowanie do rejestru kontenerów
-        run: az acr login --name "${{ vars.ACR_NAME }}"
+        env:
+          ACR_NAME: ${{ vars.ACR_NAME }}
+        run: |
+          if [ -z "$ACR_NAME" ]; then
+            echo "::error::Zmienna ACR_NAME jest pusta lub nie istnieje (Settings -> Secrets and variables -> Actions -> Variables albo Environments -> production)."
+            exit 1
+          fi
+          az acr login --name "$ACR_NAME"
 
       - name: Back-end - budowanie i wysłanie obrazu
         env:
           SHA: ${{ steps.ref.outputs.sha }}
+          ACR_NAME: ${{ vars.ACR_NAME }}
         run: |
+          REGISTRY="$ACR_NAME.azurecr.io"
           docker build \
             --tag "$REGISTRY/model-manager-backend:$SHA" \
             --tag "$REGISTRY/model-manager-backend:latest" \
@@ -72,7 +77,9 @@ jobs:
       - name: Front-end - budowanie i wysłanie obrazu
         env:
           SHA: ${{ steps.ref.outputs.sha }}
+          ACR_NAME: ${{ vars.ACR_NAME }}
         run: |
+          REGISTRY="$ACR_NAME.azurecr.io"
           docker build \
             --tag "$REGISTRY/model-manager-frontend:$SHA" \
             --tag "$REGISTRY/model-manager-frontend:latest" \
@@ -101,15 +108,22 @@ jobs:
         id: deploy
         env:
           APP: ${{ vars.BACKEND_APP_NAME }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          ACR_NAME: ${{ vars.ACR_NAME }}
           SHA: ${{ needs.build.outputs.sha }}
         run: |
-          # Brakująca konfiguracja ma kończyć się wyraźnym błędem, a nie cichym pominięciem wdrożenia
-          for name in APP RESOURCE_GROUP REGISTRY; do
-            if [ -z "${!name}" ]; then
-              echo "::error::Brak wartości $name. Sprawdź zmienne repozytorium (Settings -> Secrets and variables -> Actions -> zakładka Variables, nie Secrets)."
+          # Brakująca konfiguracja ma kończyć się wyraźnym błędem, a nie cichym pominięciem wdrożenia.
+          # Zmienna może być zdefiniowana w repozytorium albo w środowisku production (Settings -> Environments).
+          require() { # nazwa zmiennej w GitHubie, jej wartość
+            if [ -z "$2" ]; then
+              echo "::error::Zmienna $1 jest pusta lub nie istnieje. Dodaj ją w Settings -> Secrets and variables -> Actions -> zakładka Variables (nie Secrets) albo w Settings -> Environments -> production."
               exit 1
             fi
-          done
+          }
+          require BACKEND_APP_NAME "$APP"
+          require AZURE_RESOURCE_GROUP "$RESOURCE_GROUP"
+          require ACR_NAME "$ACR_NAME"
+          REGISTRY="$ACR_NAME.azurecr.io"
           az extension add --name containerapp --upgrade --only-show-errors
           if output=$(az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors 2>&1); then
             az containerapp update --name "$APP" --resource-group "$RESOURCE_GROUP" \
@@ -148,15 +162,22 @@ jobs:
         id: deploy
         env:
           APP: ${{ vars.FRONTEND_APP_NAME }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          ACR_NAME: ${{ vars.ACR_NAME }}
           SHA: ${{ needs.build.outputs.sha }}
         run: |
-          # Brakująca konfiguracja ma kończyć się wyraźnym błędem, a nie cichym pominięciem wdrożenia
-          for name in APP RESOURCE_GROUP REGISTRY; do
-            if [ -z "${!name}" ]; then
-              echo "::error::Brak wartości $name. Sprawdź zmienne repozytorium (Settings -> Secrets and variables -> Actions -> zakładka Variables, nie Secrets)."
+          # Brakująca konfiguracja ma kończyć się wyraźnym błędem, a nie cichym pominięciem wdrożenia.
+          # Zmienna może być zdefiniowana w repozytorium albo w środowisku production (Settings -> Environments).
+          require() { # nazwa zmiennej w GitHubie, jej wartość
+            if [ -z "$2" ]; then
+              echo "::error::Zmienna $1 jest pusta lub nie istnieje. Dodaj ją w Settings -> Secrets and variables -> Actions -> zakładka Variables (nie Secrets) albo w Settings -> Environments -> production."
               exit 1
             fi
-          done
+          }
+          require FRONTEND_APP_NAME "$APP"
+          require AZURE_RESOURCE_GROUP "$RESOURCE_GROUP"
+          require ACR_NAME "$ACR_NAME"
+          REGISTRY="$ACR_NAME.azurecr.io"
           az extension add --name containerapp --upgrade --only-show-errors
           if output=$(az containerapp show --name "$APP" --resource-group "$RESOURCE_GROUP" --only-show-errors 2>&1); then
             az containerapp update --name "$APP" --resource-group "$RESOURCE_GROUP" \
@@ -180,6 +201,7 @@ jobs:
     if: needs.deploy-app.outputs.deployed == 'true' && needs.deploy-web.outputs.deployed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: production
     steps:
       # Publiczny adres musi zwracać dokładnie wersję (skrót commita) właśnie wdrożoną.
       # W trybie jednej rewizji Container Apps stara wersja działa, dopóki nowa nie stanie się zdrowa,
@@ -190,7 +212,7 @@ jobs:
           PUBLIC_URL: ${{ vars.PUBLIC_URL }}
         run: |
           if [ -z "$PUBLIC_URL" ]; then
-            echo "::error::Brak zmiennej PUBLIC_URL (Settings -> Secrets and variables -> Actions -> Variables)."
+            echo "::error::Zmienna PUBLIC_URL jest pusta lub nie istnieje (Settings -> Secrets and variables -> Actions -> Variables albo Environments -> production)."
             exit 1
           fi
           url="${PUBLIC_URL%/}"
