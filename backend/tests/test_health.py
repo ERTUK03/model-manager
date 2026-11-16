@@ -10,10 +10,14 @@ def test_health_returns_status_and_version_without_authentication(anon_client):
     assert response.json() == {"status": "ok", "version": "test-version"}
 
 
-def test_ready_checks_database(anon_client):
+def test_ready_checks_database_and_reports_latency(anon_client):
     response = anon_client.get("/api/health/ready")
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "version": "test-version"}
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["version"] == "test-version"
+    assert body["checks"]["database"]["status"] == "ok"
+    assert body["checks"]["database"]["latency_ms"] >= 0
 
 
 def test_ready_returns_503_when_database_is_down(anon_client):

@@ -1,3 +1,6 @@
+import logging
+import time
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,6 +11,7 @@ from app.core.database import get_db
 from app.core.exceptions import ServiceUnavailableError
 
 router = APIRouter(tags=["health"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/health")
@@ -18,9 +22,17 @@ def health_check():
 
 @router.get("/health/ready")
 def readiness_check(db: Session = Depends(get_db)):
-    """Sprawdza także połączenie z bazą danych. Gdy baza nie odpowiada, zwraca 503."""
+    """Sprawdza połączenie z bazą danych i zwraca czas odpowiedzi bazy. Gdy baza nie odpowiada, zwraca 503."""
+    started = time.perf_counter()
     try:
         db.execute(text("SELECT 1"))
-    except SQLAlchemyError:
+    except SQLAlchemyError as exc:
+        # Do dziennika trafia tylko typ błędu: komunikat sterownika mógłby zawierać dane połączenia
+        logger.warning("Sprawdzenie gotowości: baza danych niedostępna (%s)", type(exc).__name__)
         raise ServiceUnavailableError("Baza danych jest niedostępna") from None
-    return {"status": "ready", "version": get_settings().app_version}
+    latency_ms = round((time.perf_counter() - started) * 1000, 1)
+    return {
+        "status": "ready",
+        "version": get_settings().app_version,
+        "checks": {"database": {"status": "ok", "latency_ms": latency_ms}},
+    }
