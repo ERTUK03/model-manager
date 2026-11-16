@@ -30,3 +30,9 @@ export GITHUB_REPO="ERTUK03/model-manager"
 export ENV_NAME="cae-main"
 export BACKEND_APP="ca-backend"
 export FRONTEND_APP="ca-frontend"
+
+# Monitoring, logi i alerty (skrypty 05 i 06)
+export APPI_NAME="appi-model-manager"
+export LOG_DAILY_CAP_GB="1"        # dzienny limit danych w Log Analytics (chroni budżet przed lawiną logów)
+export BUDGET_AMOUNT="30"          # miesięczny budżet w walucie rozliczeniowej subskrypcji
+export ALERT_EMAILS="adres1@example.com,adres2@example.com"   # adresy zespołu, oddzielone przecinkami
