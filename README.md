@@ -213,7 +213,7 @@ Pełna instrukcja (skrypty infrastruktury, konfiguracja GitHuba, reguły sieciow
 
 ## Monitoring, logi i alerty
 
-Konfiguracja monitoringu jest opisana kodem (`config/azure/05-monitoring.sh`, `06-budget-alerts.sh`), a szczegółowa instrukcja z przykładowymi zapytaniami i budową dashboardu jest w [docs/deployment.md](docs/deployment.md) (krok H).
+Konfiguracja monitoringu jest opisana kodem (`config/azure/05-monitoring.sh`, `06-budget-alerts.sh`).
 
 ### Endpointy stanu
 
