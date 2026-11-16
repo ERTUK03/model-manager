@@ -4,6 +4,10 @@ import sys
 from datetime import datetime, timezone
 
 
+# Atrybuty standardowego wpisu. Wszystko inne (przekazane w extra=) trafia do JSON jako dodatkowe pola
+_STANDARD_ATTRIBUTES = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__) | {"message", "asctime", "taskName"}
+
+
 class JsonFormatter(logging.Formatter):
     """Jedna linia JSON na wpis: łatwa do przeszukiwania i agregacji w Log Analytics."""
 
@@ -14,9 +18,9 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-        fields = getattr(record, "fields", None)
-        if isinstance(fields, dict):
-            payload.update(fields)
+        for key, value in record.__dict__.items():
+            if key not in _STANDARD_ATTRIBUTES and not key.startswith("_"):
+                payload[key] = value
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload, ensure_ascii=False, default=str)

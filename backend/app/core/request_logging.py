@@ -46,12 +46,10 @@ def register_request_logging(app: FastAPI) -> None:
                 logger.info(
                     "request_completed",
                     extra={
-                        "fields": {
-                            "request_id": request_id,
-                            "method": request.method,
-                            "route": route,
-                            "status": status,
-                            "duration_ms": round((time.perf_counter() - started) * 1000, 1),
-                        }
+                        "request_id": request_id,
+                        "method": request.method,
+                        "route": route,
+                        "status": status,
+                        "duration_ms": round((time.perf_counter() - started) * 1000, 1),
                     },
                 )

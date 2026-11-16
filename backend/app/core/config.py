@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     # Wersja aplikacji (skrót commita), wpisywana do obrazu podczas budowania. Zwraca ją /api/health
     app_version: str = "dev"
     log_level: str = "INFO"
+    # Connection string do Application Insights. Gdy go brak, telemetria jest wyłączona (np. lokalnie i w testach)
+    applicationinsights_connection_string: SecretStr | None = None
     # Lista adresów oddzielonych przecinkami. Puste = CORS wyłączony (ruch idzie przez proxy nginx)
     cors_origins: str = ""
     # SecretStr: wartość nie pojawia się w logach ani w repr().
